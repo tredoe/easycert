@@ -4,40 +4,19 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-// Command go.mkcert generates a self-signed certificate with its private key,
+// Command easycert generates a self-signed certificate with its private key,
 // to be used in TLS conections.
 //
-// ssl-cert in Linux System
+// Package ssl-cert in Linux
 //
-// go.mkcert is based in '/usr/sbin/make-ssl-cert' Bash script from the
-// "ssl-cert" package in Ubuntu system. That package comes with a self-signed
-// certificate in:
+// The generator of self-signed certificates is based in '/usr/sbin/make-ssl-cert'
+// Bash script from the "ssl-cert" package in Ubuntu system. That package comes
+// with a self-signed certificate in:
 //   + /etc/ssl/certs/ssl-cert-snakeoil.pem
 //   + /etc/ssl/private/ssl-cert-snakeoil.key
 //
-// To create a fresh certificate:
-//
-//   $ sudo make-ssl-cert generate-default-snakeoil [--force-overwrite]
-//
 // However, there is no easy way to change arguments such as "days" or the
 // default bits.
-//
-// Checking
-//
-// These are basic operations to check the self-signed certificate:
-//
-// + Check certificate:
-//
-//   $ openssl verify -CAfile /etc/ssl/certs/ssl-cert-snakeoil.pem /etc/ssl/certs/ssl-cert-snakeoil.pem
-//
-// + Check private key of certificate:
-//
-//   $ sudo openssl rsa -noout -text -check -in /etc/ssl/private/ssl-cert-snakeoil.key
-//
-// + Query certificate:
-//
-//   $ openssl x509 -noout -in /etc/ssl/certs/ssl-cert-snakeoil.pem -text
-//   $ openssl x509 -noout -in /etc/ssl/certs/ssl-cert-snakeoil.pem -dates
 package main
 
 import (
@@ -103,19 +82,26 @@ func (s *keySize) String() string {
 var (
 	fKeySize keySize = 2048 // default
 
+	fDebug  = flag.Bool("d", false, "debug mode; only create temporary files")
+	fLangGo = flag.Bool("lang-go", false, "generate file for Go language with certificate in binary")
+	fSys    = flag.Bool("sys", false, "generate file for the system in '/etc/ssl'")
+
 	fConfig = flag.String("config", "", "configuration template for X509 certificate.\n"+
 		"\tBy default, it is used the file installed with this program")
 	fDays      = flag.Uint("days", 365*7, "number of days a certificate generated is valid")
 	fFile      = flag.String("file", "cert-snakeoil", "certificate file name")
 	fOverwrite = flag.Bool("overwrite", false, "force overwrite when certificate exists")
 
-	fDebug  = flag.Bool("d", false, "debug mode; only create temporary files")
-	fHash   = flag.Bool("hash", false, "print the hash value")
-	fLangGo = flag.Bool("lang-go", false, "generate file for Go language with certificate in binary")
-	fRoot   = flag.Bool("root", false, "generate file for the system in '/etc/ssl'")
+	fCheck = flag.Bool("chk", false, "checking")
 
-	//fIn  = flag.String("in", "", "input file; default stdin")
-	fOut = flag.String("out", "", "output file; default stdout")
+	fCert = flag.Bool("cert", false, "the file is a certificate")
+	fKey  = flag.Bool("key", false, "the file is a private key")
+
+	fPrint       = flag.Bool("p", false, "print out information of the certificate")
+	fPrintHash   = flag.Bool("hash", false, "print the hash value")
+	fPrintInfo   = flag.Bool("info", false, "print the subject")
+	fPrintIssuer = flag.Bool("issuer", false, "print the issuer")
+	fPrintName   = flag.Bool("name", false, "print the subject")
 )
 
 func init() {
@@ -123,9 +109,18 @@ func init() {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, `Generate self-signed certificate.
+	fmt.Fprintf(os.Stderr, `Tool to generate and handle certificates.
 
-Usage: go.mkcert -root | -lang-go | -d
+Usage: easycert [options]
+
+- ChecK:
+	-chk [-cert|-key] file
+- Information:
+	-p [-cert|-key] file
+	-cert [-hash -info -issuer -name] file...
+- Generate:
+	[-sys|-lang-go|-d] [-config -days -file -overwrite -size]
+
 `)
 
 	flag.PrintDefaults()
@@ -136,34 +131,72 @@ func main() {
 	flag.Usage = usage
 	flag.Parse()
 
-	if !*fRoot && !*fLangGo && !*fDebug && !*fHash {
-		usage()
-	}
-	if *fDebug && (*fRoot || *fLangGo) {
-		usage()
-	}
-
 	log.SetFlags(0)
 	log.SetPrefix("FAIL! ")
+
+	if *fSys {
+		if os.Getuid() != 0 {
+			log.Fatal("You must be root")
+		}
+	}
+	if *fKey {
+		_, err := os.Stat(flag.Args()[0])
+		if err != nil && os.Getuid() != 0 {
+			log.Fatal("You must be root to access to the key file")
+		}
+	}
 
 	cmdPath, err := exec.LookPath("openssl")
 	if err != nil {
 		log.Fatal("OpenSSL is not installed")
 	}
 
-	if *fHash {
-		RunHash(cmdPath)
+	if *fCheck {
+		if *fCert {
+			CheckCert(cmdPath)
+		} else if *fKey {
+			CheckKey(cmdPath)
+		}
 		os.Exit(0)
+	}
+
+	if *fPrint {
+		if *fCert {
+			PrintCert(cmdPath)
+		} else if *fKey {
+			PrintKey(cmdPath)
+		}
+		os.Exit(0)
+	}
+
+	if *fCert {
+		if *fPrintHash {
+			PrintHash(cmdPath)
+		}
+		if *fPrintInfo {
+			PrintInfo(cmdPath)
+		}
+		if *fPrintIssuer {
+			PrintIssuer(cmdPath)
+		}
+		if *fPrintName {
+			PrintName(cmdPath)
+		}
+		os.Exit(0)
+	}
+
+	if !*fSys && !*fLangGo && !*fDebug {
+		usage()
+	}
+	if *fDebug && (*fSys || *fLangGo) {
+		usage()
 	}
 
 	// == File names for the certificate
 
 	var certFile, keyFile string
 
-	if *fRoot {
-		if os.Getuid() != 0 {
-			log.Fatal("You must be root")
-		}
+	if *fSys {
 		certFile = filepath.Join("/etc/ssl/certs", *fFile)
 		keyFile = filepath.Join("/etc/ssl/private", *fFile)
 	} else {
@@ -185,7 +218,7 @@ func main() {
 			log.Fatalf("File already exists: %q", keyFile)
 		}
 
-		if !*fRoot {
+		if !*fSys {
 			if _, err = os.Stat(*fFile); !os.IsNotExist(err) {
 				log.Fatalf("File already exists: %q", *fFile)
 			}
@@ -264,7 +297,7 @@ func main() {
 	}
 
 	// Change modes to files generated
-	if *fRoot {
+	if *fSys {
 		if err = os.Chmod(certFile, 0644); err != nil {
 			log.Print(err)
 		}
