@@ -16,7 +16,7 @@ To generate a certificate for Go language:
 
 To create a certificate in '/etc/ssl':
 
-	sudo env PATH=$PATH GOPATH=$GOPATH easycert -root
+	sudo env PATH=$PATH GOPATH=$GOPATH easycert -sys
 
 ## License
 
