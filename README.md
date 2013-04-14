@@ -10,13 +10,23 @@ Wrap over OpenSSL to create and handle certificates.
 
 ## Usage
 
-To generate a certificate for Go language:
+In the first, there is to create the directory structure for the Certification
+Authority:
 
-	easycert -lang-go
+	easycert -root-ca
 
-To create a certificate in '/etc/ssl':
+It is created in '.RootCA' of your HOME directory.
 
-	sudo env PATH=$PATH GOPATH=$GOPATH easycert -sys
+Now, can be generated the certificate requests to be signed for your CA or by
+a third one.
+
+- Generate a certificate request which is signed by your CA:
+
+	easycert -new-req -sign foo
+
+- Convert certificate to binary to be used in Go:
+
+	easycert -lang-go foo
 
 ## License
 
