@@ -378,6 +378,10 @@ func SetupDir() {
 
 // Cert2Go creates the certificate in binary for Go.
 func Cert2Go() {
+	CACertBlock, err := ioutil.ReadFile(filepath.Join(Dir.Cert, _NAME_CA+EXT_CERT))
+	if err != nil {
+		log.Fatal(err)
+	}
 	certBlock, err := ioutil.ReadFile(File.Cert)
 	if err != nil {
 		log.Fatal(err)
@@ -416,6 +420,7 @@ func Cert2Go() {
 		Version   string
 		Date      string
 		Package   string
+		CACert    string
 		Cert, Key string
 	}{
 		strings.Join(os.Args, " "),
@@ -424,6 +429,7 @@ func Cert2Go() {
 		string(bytes.TrimRight(version, "\n")),
 		time.Now().Format(time.RFC822),
 		filepath.Base(wd),
+		GoBlock(CACertBlock).String(),
 		GoBlock(certBlock).String(),
 		GoBlock(keyBlock).String(),
 	}

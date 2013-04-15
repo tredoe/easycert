@@ -20,6 +20,7 @@ package {{.Package}}
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"log"
 )
 
@@ -27,17 +28,25 @@ var TLSConfig *tls.Config
 
 // Load certificate
 func init() {
-	CERT_PEM_BLOCK := {{.Cert}}
+	CA_CERT_BLOCK := {{.CACert}}
 
-	KEY_PEM_BLOCK := {{.Key}}
+	CERT_BLOCK := {{.Cert}}
 
-	cert, err := tls.X509KeyPair(CERT_PEM_BLOCK, KEY_PEM_BLOCK)
+	KEY_BLOCK := {{.Key}}
+
+	cert, err := tls.X509KeyPair(CERT_BLOCK, KEY_BLOCK)
 	if err != nil {
 		log.Fatal("load keys: ", err)
 	}
 
+	certPool := x509.NewCertPool()
+	if ok := certPool.AppendCertsFromPEM(CA_CERT_BLOCK); !ok {
+		log.Fatal("CA certificate not valid")
+	}
+
 	TLSConfig = &tls.Config{
 		Certificates: []tls.Certificate{cert},
+		RootCAs:      certPool,
 		// Can add other configuration fields
 	}
 }
