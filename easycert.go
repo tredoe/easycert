@@ -30,7 +30,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -181,11 +180,12 @@ var (
 	_IsCert = flag.Bool("cert", false, "the file is a certificate")
 	_IsKey  = flag.Bool("key", false, "the file is a private key")
 
-	_IsPrint       = flag.Bool("p", false, "print out information of the certificate")
-	_IsPrintHash   = flag.Bool("hash", false, "print the hash value")
-	_IsPrintInfo   = flag.Bool("info", false, "print extensive information")
-	_IsPrintIssuer = flag.Bool("issuer", false, "print the issuer")
-	_IsPrintName   = flag.Bool("name", false, "print the subject")
+	_IsInfo     = flag.Bool("i", false, "print out information of the certificate")
+	_IsEndDate  = flag.Bool("end-date", false, "print the date until it is valid")
+	_IsHash     = flag.Bool("hash", false, "print the hash value")
+	_IsFullInfo = flag.Bool("full", false, "print extensive information")
+	_IsIssuer   = flag.Bool("issuer", false, "print the issuer")
+	_IsName     = flag.Bool("name", false, "print the subject")
 )
 
 func init() {
@@ -211,9 +211,9 @@ Usage: easycert [options]
 	-chk [-cert|-key] file | name
 
 - Information:
-	-p [-cert|-key] file | name
-	-cert [-hash -issuer -name] file | name
-	-cert -info file | name
+	-i [-cert|-key] file | name
+	-cert [-end-date -hash -issuer -name] file | name
+	-cert -full file | name
 
 `)
 
@@ -259,26 +259,29 @@ func main() {
 		os.Exit(0)
 	}
 
-	if *_IsPrint {
+	if *_IsInfo {
 		if *_IsCert {
-			PrintCert(filename)
+			fmt.Print(CertInfo(filename))
 		} else if *_IsKey {
-			PrintKey(filename)
+			fmt.Print(KeyInfo(filename))
 		}
 		os.Exit(0)
 	}
 	if *_IsCert {
-		if *_IsPrintHash {
-			PrintHash(filename)
+		if *_IsEndDate {
+			fmt.Print(EndDateInfo(filename))
 		}
-		if *_IsPrintInfo {
-			PrintInfo(filename)
+		if *_IsHash {
+			fmt.Print(HashInfo(filename))
 		}
-		if *_IsPrintIssuer {
-			PrintIssuer(filename)
+		if *_IsFullInfo {
+			fmt.Print(FullInfo(filename))
 		}
-		if *_IsPrintName {
-			PrintName(filename)
+		if *_IsIssuer {
+			fmt.Print(IssuerInfo(filename))
+		}
+		if *_IsName {
+			fmt.Print(NameInfo(filename))
 		}
 		os.Exit(0)
 	}
@@ -445,20 +448,20 @@ func Cert2Go() {
 
 	tmpl := template.Must(template.New("").Parse(TEMPLATE_GO))
 	data := struct {
-		Command   string
-		System    string
-		Arch      string
-		Version   string
-		Date      string
-		Package   string
-		CACert    string
-		Cert, Key string
+		System     string
+		Arch       string
+		Version    string
+		Date       string
+		ValidUntil string
+		Package    string
+		CACert     string
+		Cert, Key  string
 	}{
-		strings.Join(os.Args, " "),
 		runtime.GOOS,
 		runtime.GOARCH,
-		string(bytes.TrimRight(version, "\n")),
+		strings.TrimRight(string(version), "\n"),
 		time.Now().Format(time.RFC822),
+		fmt.Sprint(strings.TrimRight(EndDateInfo(File.Cert), "\n")),
 		filepath.Base(wd),
 		GoBlock(CACertBlock).String(),
 		GoBlock(certBlock).String(),
