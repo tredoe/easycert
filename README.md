@@ -24,9 +24,9 @@ a third one.
 
 	easycert -req -sign foo
 
-- Convert certificate to binary to be used in Go:
+- Convert CA certificate to binary to be used in Go:
 
-	easycert -lang-go foo
+	easycert -lang-go
 
 ## License
 

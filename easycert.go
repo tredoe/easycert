@@ -20,9 +20,9 @@
 //
 //   easycert -req -sign foo
 //
-// - Convert certificate to binary to be used in Go:
+// - Convert CA certificate to binary to be used in Go:
 //
-//   easycert -lang-go foo
+//   easycert -lang-go
 //
 // When it is used a flag to checking or printing a certificate or private key,
 // it can be used a file (using an absolute or relative path) or a name which is
@@ -54,8 +54,9 @@ const (
 	_DIR_CA  = ".RootCA" // Directory for the Root Certification Authority
 	_NAME_CA = "ca"      // Name for files related to the CA.
 
-	_FILE_CONFIG = "openssl.cfg"
-	_FILE_GO     = "cert.go"
+	_FILE_CONFIG    = "openssl.cfg"
+	_FILE_SERVER_GO = "z-cert_server.go"
+	_FILE_CLIENT_GO = "z-cert_client.go"
 )
 
 // File extensions.
@@ -202,13 +203,13 @@ Usage: easycert [options]
 
 - Create directory structure for the Certification Authority:
 	-root-ca [-size -years]
+- Convert CA certificate to binary to be used from some language:
+	-lang-go
 
 - Generate certificate request:
-	-req [-size -years -sign] name
+	-req [-size -years] [-sign] name
 - Sign certificate request:
 	-sign name
-- Convert certificate to binary to be used from some language:
-	-lang-go name
 
 - ChecK:
 	-chk [-cert|-key] file | name
@@ -257,10 +258,10 @@ func main() {
 
 	filename := ""
 
-	if !*_IsRootCA {
-		filename = flag.Args()[0]
-	} else {
+	if *_IsLangGo || *_IsRootCA {
 		filename = _NAME_CA
+	} else {
+		filename = flag.Args()[0]
 	}
 	File.Cert = filepath.Join(Dir.Cert, filename+EXT_CERT)
 	File.Key = filepath.Join(Dir.Key, filename+EXT_KEY)
@@ -334,8 +335,10 @@ func main() {
 	}
 
 	if *_IsLangGo {
-		if _, err := os.Stat(_FILE_GO); !os.IsNotExist(err) {
-			log.Fatalf("File already exists: %q", _FILE_GO)
+		for _, v := range []string{_FILE_SERVER_GO, _FILE_CLIENT_GO} {
+			if _, err := os.Stat(v); !os.IsNotExist(err) {
+				log.Fatalf("File already exists: %q", v)
+			}
 		}
 		Cert2Go()
 		os.Exit(0)
@@ -436,26 +439,11 @@ func SetupDir() {
 
 // Cert2Go creates the certificate in binary for Go.
 func Cert2Go() {
-	CACertBlock, err := ioutil.ReadFile(filepath.Join(Dir.Cert, _NAME_CA+EXT_CERT))
+	CACertBlock, err := ioutil.ReadFile(File.Cert)
 	if err != nil {
 		log.Fatal(err)
 	}
-	certBlock, err := ioutil.ReadFile(File.Cert)
-	if err != nil {
-		log.Fatal(err)
-	}
-	keyBlock, err := ioutil.ReadFile(File.Key)
-	if err != nil {
-		log.Fatal(err)
-	}
-	// Remove certificate
-	/*for _, v := range []string{File.Cert, File.Key} {
-		if err = os.Remove(v); err != nil {
-			log.Print(err)
-		}
-	}*/
-
-	wd, err := os.Getwd()
+	CAKeyBlock, err := ioutil.ReadFile(File.Key)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -465,32 +453,46 @@ func Cert2Go() {
 		log.Fatal(err)
 	}
 
-	file, err := os.OpenFile(_FILE_GO, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	// Server
+
+	file, err := os.OpenFile(_FILE_SERVER_GO, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	tmpl := template.Must(template.New("").Parse(TEMPLATE_GO))
+	tmpl := template.Must(template.New("").Parse(TMPL_SERVER_GO))
 	data := struct {
 		System     string
 		Arch       string
 		Version    string
 		Date       string
 		ValidUntil string
-		Package    string
 		CACert     string
-		Cert, Key  string
+		CAKey      string
 	}{
 		runtime.GOOS,
 		runtime.GOARCH,
 		strings.TrimRight(string(version), "\n"),
 		time.Now().Format(time.RFC822),
 		fmt.Sprint(strings.TrimRight(EndDateInfo(File.Cert), "\n")),
-		filepath.Base(wd),
 		GoBlock(CACertBlock).String(),
-		GoBlock(certBlock).String(),
-		GoBlock(keyBlock).String(),
+		GoBlock(CAKeyBlock).String(),
 	}
+
+	err = tmpl.Execute(file, data)
+	file.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Client
+
+	file, err = os.OpenFile(_FILE_CLIENT_GO, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tmpl = template.Must(template.New("").Parse(TMPL_CLIENT_GO))
 
 	err = tmpl.Execute(file, data)
 	file.Close()

@@ -16,7 +16,7 @@ import (
 	"strconv"
 )
 
-// RootCA creates a Certification Authority with the key embedded.
+// RootCA creates a Certification Authority with the key no encrypted.
 func RootCA() {
 	fmt.Print("\n== Build Certification Authority\n\n")
 
