@@ -214,15 +214,12 @@ authorityKeyIdentifier=keyid,issuer
 # This is required for TSA certificates.
 # extendedKeyUsage = critical,timeStamping
 
-subjectAltName = @alt_names
-
 [ v3_req ]
 
 # Extensions to add to a certificate request
 
 basicConstraints = CA:FALSE
 keyUsage = nonRepudiation, digitalSignature, keyEncipherment
-#subjectAltName = @alt_names
 
 [ v3_ca ]
 
@@ -259,6 +256,8 @@ basicConstraints = CA:true
 # Where 'obj' is a standard or added object
 # You can even override a supported extension:
 # basicConstraints= critical, DER:30:03:01:01:FF
+
+subjectAltName = @alt_names
 
 [ crl_ext ]
 

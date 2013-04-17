@@ -47,7 +47,6 @@ func init() {
 	TLSConfig = &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		RootCAs:      certPool,
-		// Can add other configuration fields
 	}
 }
 `

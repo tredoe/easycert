@@ -16,11 +16,11 @@ import (
 	"strconv"
 )
 
-// RootCA creates a Certification Authority.
+// RootCA creates a Certification Authority with the key embedded.
 func RootCA() {
 	fmt.Print("\n== Build Certification Authority\n\n")
 
-	args := []string{"req", "-new",
+	args := []string{"req", "-new", "-nodes",
 		"-config", File.Config, "-out", File.Request, "-keyout", File.Key,
 		"-newkey", "rsa:" + _KeySize.String(),
 	}

@@ -227,19 +227,6 @@ Usage: easycert [options]
 	os.Exit(2)
 }
 
-func PrintCertificates(cert []string) {
-	if len(cert) == 0 {
-		return
-	}
-	for i, v := range cert {
-		if i != 0 {
-			fmt.Print("\t")
-		}
-		fmt.Print(filepath.Base(v))
-	}
-	fmt.Println()
-}
-
 func main() {
 	flag.Usage = usage
 	flag.Parse()
@@ -252,7 +239,7 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			PrintCertificates(match)
+			printCert(match)
 			isExit = true
 		}
 		if *_IsReqList {
@@ -260,7 +247,7 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			PrintCertificates(match)
+			printCert(match)
 			os.Exit(0)
 		}
 		if isExit {
@@ -510,4 +497,18 @@ func Cert2Go() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+// printCert prints the name of the certificates.
+func printCert(cert []string) {
+	if len(cert) == 0 {
+		return
+	}
+	for i, v := range cert {
+		if i != 0 {
+			fmt.Print("\t")
+		}
+		fmt.Print(filepath.Base(v))
+	}
+	fmt.Println()
 }
