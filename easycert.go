@@ -11,7 +11,8 @@
 //
 //   easycert -root-ca
 //
-// It is created in '.RootCA' of your HOME directory.
+// It is created in '.RootCA' of your HOME directory. It is also created in
+// subdirectory 'misc' the files in language Go to use the CA certificate.
 //
 // Now, can be generated the certificate requests to be signed for your CA or by
 // a third one.
@@ -20,9 +21,6 @@
 //
 //   easycert -req -sign foo
 //
-// - Convert CA certificate to binary to be used in Go:
-//
-//   easycert -lang-go
 //
 // When it is used a flag to checking or printing a certificate or private key,
 // it can be used a file (using an absolute or relative path) or a name which is
@@ -80,6 +78,7 @@ type DirPath struct {
 	Cert  string // Where the server certificates are placed.
 	Key   string // Where the private keys are placed.
 	Revok string // Where the certificate revokation list is placed.
+	Misc  string // Files to handle the CA certificate from language Go.
 
 	// Where OpenSSL puts the created certificates in PEM (unencrypted) format
 	// and in the form 'cert_serial_number.pem' (e.g. '07.pem')
@@ -126,6 +125,7 @@ func init() {
 		NewCert: filepath.Join(root, "newcerts"),
 		Key:     filepath.Join(root, "private"),
 		Revok:   filepath.Join(root, "crl"),
+		Misc:    filepath.Join(root, "misc"),
 	}
 
 	File = &FilePath{
@@ -203,7 +203,7 @@ Usage: easycert [options]
 
 - Create directory structure for the Certification Authority:
 	-root-ca [-size -years]
-- Convert CA certificate to binary to be used from some language:
+- Copy in actual directory files of language Go to handle the CA certificate:
 	-lang-go
 
 - Generate certificate request:
@@ -340,7 +340,16 @@ func main() {
 				log.Fatalf("File already exists: %q", v)
 			}
 		}
-		Cert2Go()
+
+		for _, v := range []string{_FILE_SERVER_GO, _FILE_CLIENT_GO} {
+			src, err := ioutil.ReadFile(filepath.Join(Dir.Misc, v))
+			if err != nil {
+				log.Fatal(err)
+			}
+			if err = ioutil.WriteFile(v, src, 0666); err != nil {
+				log.Fatal(err)
+			}
+		}
 		os.Exit(0)
 	}
 
@@ -351,6 +360,7 @@ func main() {
 		SetupDir()
 		*_Years = 10
 		RootCA()
+		Cert2Lang()
 		os.Exit(0)
 	}
 
@@ -361,7 +371,7 @@ func main() {
 func SetupDir() {
 	var err error
 
-	for _, v := range []string{Dir.Root, Dir.Cert, Dir.NewCert, Dir.Key, Dir.Revok} {
+	for _, v := range []string{Dir.Root, Dir.Cert, Dir.NewCert, Dir.Key, Dir.Revok, Dir.Misc} {
 		if err = os.Mkdir(v, 0755); err != nil {
 			log.Fatal(err)
 		}
@@ -437,8 +447,8 @@ func SetupDir() {
 	fmt.Printf("* Directory structure created in %q\n", Dir.Root)
 }
 
-// Cert2Go creates the certificate in binary for Go.
-func Cert2Go() {
+// Cert2Lang creates files in language Go to handle the CA certificate.
+func Cert2Lang() {
 	CACertBlock, err := ioutil.ReadFile(File.Cert)
 	if err != nil {
 		log.Fatal(err)
@@ -455,7 +465,8 @@ func Cert2Go() {
 
 	// Server
 
-	file, err := os.OpenFile(_FILE_SERVER_GO, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	file, err := os.OpenFile(filepath.Join(Dir.Misc, _FILE_SERVER_GO),
+		os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -487,7 +498,8 @@ func Cert2Go() {
 
 	// Client
 
-	file, err = os.OpenFile(_FILE_CLIENT_GO, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	file, err = os.OpenFile(filepath.Join(Dir.Misc, _FILE_CLIENT_GO),
+		os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}

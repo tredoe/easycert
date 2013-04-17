@@ -15,7 +15,8 @@ Authority:
 
 	easycert -root-ca
 
-It is created in '.RootCA' of your HOME directory.
+It is created in '.RootCA' of your HOME directory. It is also created in
+subdirectory 'misc' the files in language Go to use the CA certificate.
 
 Now, can be generated the certificate requests to be signed for your CA or by
 a third one.
@@ -23,10 +24,6 @@ a third one.
 - Generate a certificate request which is signed by your CA:
 
 	easycert -req -sign foo
-
-- Convert CA certificate to binary to be used in Go:
-
-	easycert -lang-go
 
 ## License
 
