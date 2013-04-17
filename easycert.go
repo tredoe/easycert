@@ -186,6 +186,9 @@ var (
 	_IsFullInfo = flag.Bool("full", false, "print extensive information")
 	_IsIssuer   = flag.Bool("issuer", false, "print the issuer")
 	_IsName     = flag.Bool("name", false, "print the subject")
+
+	_IsCertList = flag.Bool("lc", false, "list the certificates in the Root CA directory")
+	_IsReqList  = flag.Bool("lr", false, "list the request certificates in the Root CA directory")
 )
 
 func init() {
@@ -215,23 +218,59 @@ Usage: easycert [options]
 	-cert [-end-date -hash -issuer -name] file | name
 	-cert -full file | name
 
+- List:
+	-lc -lr
+
 `)
 
 	flag.PrintDefaults()
 	os.Exit(2)
 }
 
+func PrintCertificates(cert []string) {
+	if len(cert) == 0 {
+		return
+	}
+	for i, v := range cert {
+		if i != 0 {
+			fmt.Print("\t")
+		}
+		fmt.Print(filepath.Base(v))
+	}
+	fmt.Println()
+}
+
 func main() {
 	flag.Usage = usage
 	flag.Parse()
 
+	isExit := false
+
+	if len(flag.Args()) == 0 {
+		if *_IsCertList {
+			match, err := filepath.Glob(filepath.Join(Dir.Cert, "*"+EXT_CERT))
+			if err != nil {
+				log.Fatal(err)
+			}
+			PrintCertificates(match)
+			isExit = true
+		}
+		if *_IsReqList {
+			match, err := filepath.Glob(filepath.Join(Dir.Root, "*"+EXT_REQUEST))
+			if err != nil {
+				log.Fatal(err)
+			}
+			PrintCertificates(match)
+			os.Exit(0)
+		}
+		if isExit {
+			os.Exit(0)
+		}
+	}
+
 	filename := ""
 
 	if !*_IsRootCA {
-		if len(flag.Args()) == 0 {
-			usage()
-		}
-
 		filename = flag.Args()[0]
 	} else {
 		filename = _NAME_CA
@@ -285,8 +324,6 @@ func main() {
 		}
 		os.Exit(0)
 	}
-
-	isExit := false
 
 	if *_IsRequest {
 		if _, err := os.Stat(File.Request); !os.IsNotExist(err) {
