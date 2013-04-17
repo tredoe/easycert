@@ -8,7 +8,6 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -25,16 +24,16 @@ func RootCA() {
 		"-config", File.Config, "-out", File.Request, "-keyout", File.Key,
 		"-newkey", "rsa:" + _KeySize.String(),
 	}
-	fmt.Printf("%s\n", openssl(args...))
+	openssl(args...)
 
-	fmt.Print("== Sign\n\n")
+	fmt.Print("\n== Sign\n\n")
 
 	args = []string{"ca", "-selfsign", "-batch", "-create_serial",
 		"-config", File.Config, "-keyfile", File.Key, "-in", File.Request, "-out", File.Cert,
 		"-days", strconv.Itoa(365 * *_Years),
 		"-extensions", "v3_ca",
 	}
-	fmt.Printf("%s\n", openssl(args...))
+	openssl(args...)
 
 	err := os.Remove(File.Request)
 	if err != nil {
@@ -44,7 +43,7 @@ func RootCA() {
 		log.Print(err)
 	}
 
-	fmt.Printf("== Generated\n- Certificate:\t%q\n- Private key:\t%q\n", File.Cert, File.Key)
+	fmt.Printf("\n== Generated\n- Certificate:\t%q\n- Private key:\t%q\n", File.Cert, File.Key)
 }
 
 // NewRequest creates a certificate request.
@@ -52,99 +51,97 @@ func NewRequest() {
 	args := []string{"req", "-new", "-nodes",
 		"-config", File.Config, "-keyout", File.Key, "-out", File.Request,
 		"-newkey", "rsa:" + _KeySize.String(),
-		"-days", strconv.Itoa(365 * *_Years),
 	}
-	fmt.Printf("%s\n", openssl(args...))
+	openssl(args...)
 
 	if err := os.Chmod(File.Key, 0400); err != nil {
 		log.Print(err)
 	}
 
-	fmt.Printf("== Generated\n- Request:\t%q\n- Private key:\t%q\n", File.Request, File.Key)
+	fmt.Printf("\n== Generated\n- Request:\t%q\n- Private key:\t%q\n", File.Request, File.Key)
 }
 
 // SignReq signs a certificate request generating a new certificate.
 func SignReq() {
 	args := []string{"ca", "-policy", "policy_anything",
 		"-config", File.Config, "-in", File.Request, "-out", File.Cert,
+		"-days", strconv.Itoa(365 * *_Years),
 		//"-keyfile", File.Key,
 	}
-	fmt.Printf("%s\n", openssl(args...))
+	openssl(args...)
 
 	if err := os.Remove(File.Request); err != nil {
 		log.Print(err)
 	}
-	fmt.Printf("* Remove certificate request: %q\n\n", File.Cert)
+	fmt.Printf("\n* Remove certificate request: %q\n", File.Cert)
 
-	fmt.Printf("== Generated\n- Certificate:\t%q\n", File.Cert)
+	fmt.Printf("\n== Generated\n- Certificate:\t%q\n", File.Cert)
 }
 
-// * * *
+// == Checking
+//
 
 // CheckCert checks the certificate.
-func CheckCert() {
+func CheckCert(file string) {
 	args := []string{"verify",
 		"-CAfile", filepath.Join(Dir.Cert, _NAME_CA+EXT_CERT),
-		flag.Args()[0],
+		file,
 	}
-	fmt.Printf("%s\n", openssl(args...))
+	openssl(args...)
 }
 
 // CheckKey checks the private key.
-func CheckKey() {
-	args := []string{"rsa", "-check", "-noout", "-in", flag.Args()[0]}
-	fmt.Printf("%s\n", openssl(args...))
+func CheckKey(file string) {
+	args := []string{"rsa", "-check", "-noout", "-in", file}
+	openssl(args...)
 }
 
-// * * *
+// == Information
+//
 
 // PrintCert prints the certificate in text.
-func PrintCert() {
-	args := []string{"x509", "-text", "-noout", "-in", flag.Args()[0]}
-	fmt.Printf("%s\n", openssl(args...))
+func PrintCert(file string) {
+	args := []string{"x509", "-text", "-noout", "-in", file}
+	openssl(args...)
 }
 
 // PrintKey prints the private key in text.
-func PrintKey() {
-	args := []string{"rsa", "-text", "-noout", "-in", flag.Args()[0]}
-	fmt.Printf("%s\n", openssl(args...))
+func PrintKey(file string) {
+	args := []string{"rsa", "-text", "-noout", "-in", file}
+	openssl(args...)
 }
 
 // * * *
 
 // PrintHash prints the hash value.
-func PrintHash() {
-	args := []string{"x509", "-hash", "-noout", "-in", flag.Args()[0]}
-	fmt.Printf("%s\n", openssl(args...))
+func PrintHash(file string) {
+	args := []string{"x509", "-hash", "-noout", "-in", file}
+	openssl(args...)
 }
 
 // PrintInfo prints the subject.
-func PrintInfo() {
-	args := []string{"x509", "-subject", "-issuer", "-enddate", "-noout", "-in", ""}
-
-	for _, v := range flag.Args() {
-		args[len(args)-1] = v
-
-		fmt.Printf("'%s'\n%s\n----\n", v, openssl(args...))
-	}
+func PrintInfo(file string) {
+	args := []string{"x509", "-subject", "-issuer", "-enddate", "-noout", "-in", file}
+	openssl(args...)
 }
 
 // PrintIssuer prints the issuer.
-func PrintIssuer() {
-	args := []string{"x509", "-issuer", "-noout", "-in", flag.Args()[0]}
-	fmt.Printf("%s\n", openssl(args...))
+func PrintIssuer(file string) {
+	args := []string{"x509", "-issuer", "-noout", "-in", file}
+	openssl(args...)
 }
 
 // PrintName prints the subject.
-func PrintName() {
-	args := []string{"x509", "-subject", "-noout", "-in", flag.Args()[0]}
-	fmt.Printf("%s\n", openssl(args...))
+func PrintName(file string) {
+	args := []string{"x509", "-subject", "-noout", "-in", file}
+	openssl(args...)
 }
 
-// * * *
+// == Run
+//
 
 // openssl executes an OpenSSL command.
-func openssl(args ...string) []byte {
+func openssl(args ...string) {
 	var stdout bytes.Buffer
 
 	cmd := exec.Command(File.Cmd, args...)
@@ -160,5 +157,6 @@ func openssl(args ...string) []byte {
 		fmt.Fprintf(os.Stderr, "\n%s\n", err)
 		os.Exit(1)
 	}
-	return bytes.TrimRight(stdout.Bytes(), "\n")
+
+	fmt.Printf("%s", stdout.Bytes())
 }

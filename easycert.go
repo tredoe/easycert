@@ -5,6 +5,28 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 // Command easycert handle certificates to be used in TLS conections.
+//
+// In the first, there is to create the directory structure for the Certification
+// Authority:
+//
+//   easycert -root-ca
+//
+// It is created in '.RootCA' of your HOME directory.
+//
+// Now, can be generated the certificate requests to be signed for your CA or by
+// a third one.
+//
+// - Generate a certificate request which is signed by your CA:
+//
+//   easycert -req -sign foo
+//
+// - Convert certificate to binary to be used in Go:
+//
+//   easycert -lang-go foo
+//
+// When it is used a flag to checking or printing a certificate or private key,
+// it can be used a file (using an absolute or relative path) or a name which is
+// looked for in the root CA directory.
 package main
 
 import (
@@ -146,13 +168,13 @@ func (s *keySize) String() string {
 
 var (
 	_IsRootCA  = flag.Bool("root-ca", false, "create the Certification Authority's structure")
-	_IsNewReq  = flag.Bool("new-req", false, "create a certificate request")
+	_IsRequest = flag.Bool("req", false, "create a certificate request")
 	_IsSignReq = flag.Bool("sign", false, "sign a certificate request")
 	_IsLangGo  = flag.Bool("lang-go", false, "generate file for Go language with certificate in binary")
 
 	_KeySize keySize = 2048 // default
 	_Years           = flag.Int("years", 1,
-		"number of years a certificate generated is valid;\n\twith flag 'root-ca', the default is 3 years")
+		"number of years a certificate generated is valid;\n\twith flag 'root-ca', the default is 10 years")
 
 	_IsCheck = flag.Bool("chk", false, "checking")
 
@@ -179,19 +201,19 @@ Usage: easycert [options]
 	-root-ca [-size -years]
 
 - Generate certificate request:
-	-new-req [-size -years -sign] certificate_name
+	-req [-size -years -sign] name
 - Sign certificate request:
-	-sign certificate_name
+	-sign name
 - Convert certificate to binary to be used from some language:
-	-lang-go certificate_name
+	-lang-go name
 
 - ChecK:
-	-chk [-cert|-key] file
+	-chk [-cert|-key] file | name
 
 - Information:
-	-p [-cert|-key] file
-	-cert [-hash -issuer -name] file
-	-cert -info file...
+	-p [-cert|-key] file | name
+	-cert [-hash -issuer -name] file | name
+	-cert -info file | name
 
 `)
 
@@ -203,58 +225,67 @@ func main() {
 	flag.Usage = usage
 	flag.Parse()
 
+	filename := ""
+
 	if !*_IsRootCA {
 		if len(flag.Args()) == 0 {
 			usage()
+		}
+
+		filename = flag.Args()[0]
+	} else {
+		filename = _NAME_CA
+	}
+	File.Cert = filepath.Join(Dir.Cert, filename+EXT_CERT)
+	File.Key = filepath.Join(Dir.Key, filename+EXT_KEY)
+	File.Request = filepath.Join(Dir.Root, filename+EXT_REQUEST)
+
+	if !*_IsRootCA {
+		if filename[0] != '.' && filename[0] != os.PathSeparator {
+			if *_IsCert {
+				filename = filepath.Join(Dir.Cert, filename+EXT_CERT)
+			} else if *_IsKey {
+				filename = filepath.Join(Dir.Key, filename+EXT_KEY)
+			}
 		}
 	}
 
 	if *_IsCheck {
 		if *_IsCert {
-			CheckCert()
+			CheckCert(filename)
 		} else if *_IsKey {
-			CheckKey()
+			CheckKey(filename)
 		}
 		os.Exit(0)
 	}
 
 	if *_IsPrint {
 		if *_IsCert {
-			PrintCert()
+			PrintCert(filename)
 		} else if *_IsKey {
-			PrintKey()
+			PrintKey(filename)
 		}
 		os.Exit(0)
 	}
 	if *_IsCert {
 		if *_IsPrintHash {
-			PrintHash()
+			PrintHash(filename)
 		}
 		if *_IsPrintInfo {
-			PrintInfo()
+			PrintInfo(filename)
 		}
 		if *_IsPrintIssuer {
-			PrintIssuer()
+			PrintIssuer(filename)
 		}
 		if *_IsPrintName {
-			PrintName()
+			PrintName(filename)
 		}
 		os.Exit(0)
 	}
 
 	isExit := false
-	name := ""
 
-	if !*_IsRootCA {
-		name = flag.Args()[0]
-	} else {
-		name = _NAME_CA
-	}
-	File.Cert = filepath.Join(Dir.Cert, name+EXT_CERT)
-	File.Key = filepath.Join(Dir.Key, name+EXT_KEY)
-	File.Request = filepath.Join(Dir.Root, name+EXT_REQUEST)
-
-	if *_IsNewReq {
+	if *_IsRequest {
 		if _, err := os.Stat(File.Request); !os.IsNotExist(err) {
 			log.Fatalf("Certificate request already exists: %q", File.Request)
 		}
@@ -288,7 +319,7 @@ func main() {
 			log.Fatalf("The Certification Authority's structure exists: %q", Dir.Root)
 		}
 		SetupDir()
-		*_Years = 3
+		*_Years = 10
 		RootCA()
 		os.Exit(0)
 	}

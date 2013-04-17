@@ -22,7 +22,7 @@ a third one.
 
 - Generate a certificate request which is signed by your CA:
 
-	easycert -new-req -sign foo
+	easycert -req -sign foo
 
 - Convert certificate to binary to be used in Go:
 
