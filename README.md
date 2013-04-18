@@ -10,20 +10,18 @@ Wrap over OpenSSL to create and handle certificates.
 
 ## Usage
 
-In the first, there is to create the directory structure for the Certification
-Authority:
+In the first, there is to create the directory structure:
 
-	easycert -root-ca
+  easycert -new
 
-It is created in '.RootCA' of your HOME directory. It is also created in
-subdirectory 'misc' the files in language Go to use the CA certificate.
+which creates '.cert' in your HOME directory.
 
-Now, can be generated the certificate requests to be signed for your CA or by
-a third one.
+Now, can be generated the certificate requests to be signed for a
+Certification Authority.
 
-- Generate a certificate request which is signed by your CA:
-
-	easycert -req -sign foo
+Note: When it is used a flag to checking or printing a certificate or private key,
+it can be used a file (using an absolute or relative path) or a name which is
+looked for in the certificates directory.
 
 ## License
 

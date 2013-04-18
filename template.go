@@ -27,11 +27,11 @@ import (
 var ServerTLSConfig *tls.Config
 
 func init() {
-	CA_CERT_BLOCK := {{.CACert}}
+	CERT_BLOCK := {{.Cert}}
 
-	CA_KEY_BLOCK := {{.CAKey}}
+	KEY_BLOCK := {{.Key}}
 
-	cert, err := tls.X509KeyPair(CA_CERT_BLOCK, CA_KEY_BLOCK)
+	cert, err := tls.X509KeyPair(CERT_BLOCK, KEY_BLOCK)
 	if err != nil {
 		log.Fatal("server: load keys: ", err)
 	}

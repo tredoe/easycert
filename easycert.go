@@ -6,25 +6,18 @@
 
 // Command easycert handle certificates to be used in TLS conections.
 //
-// In the first, there is to create the directory structure for the Certification
-// Authority:
+// In the first, there is to create the directory structure:
 //
-//   easycert -root-ca
+//   easycert -new
 //
-// It is created in '.RootCA' of your HOME directory. It is also created in
-// subdirectory 'misc' the files in language Go to use the CA certificate.
+// which creates '.cert' in your HOME directory.
 //
-// Now, can be generated the certificate requests to be signed for your CA or by
-// a third one.
+// Now, can be generated the certificate requests to be signed for a
+// Certification Authority.
 //
-// - Generate a certificate request which is signed by your CA:
-//
-//   easycert -req -sign foo
-//
-//
-// When it is used a flag to checking or printing a certificate or private key,
+// Note: When it is used a flag to checking or printing a certificate or private key,
 // it can be used a file (using an absolute or relative path) or a name which is
-// looked for in the root CA directory.
+// looked for in the certificates directory.
 package main
 
 import (
@@ -49,8 +42,8 @@ const (
 	// Where the configuration template is installed through "go get".
 	_DIR_CONFIG = "github.com/kless/easycert/data"
 
-	_DIR_CA  = ".RootCA" // Directory for the Root Certification Authority
-	_NAME_CA = "ca"      // Name for files related to the CA.
+	_DIR_ROOT = ".cert" // Directory to store the certificates.
+	_NAME_CA  = "ca"    // Name for files related to the CA.
 
 	_FILE_CONFIG    = "openssl.cfg"
 	_FILE_SERVER_GO = "z-cert_server.go"
@@ -67,18 +60,17 @@ const (
 	// server certificate. Afterwards it is not needed and can be deleted).
 	EXT_REQUEST = ".csr"
 
-	// For files that contain both the Key and the server Certificate since some
+	// For files that contain both the Key and the server certificate since some
 	// servers need this. Permissions should be restrictive on these files.
 	EXT_CERT_AND_KEY = ".pem"
 )
 
 // DirPath represents the directory structure.
 type DirPath struct {
-	Root  string // Certificate Authority’s directory.
+	Root  string // Root directory with certificates.
 	Cert  string // Where the server certificates are placed.
 	Key   string // Where the private keys are placed.
 	Revok string // Where the certificate revokation list is placed.
-	Misc  string // Files to handle the CA certificate from language Go.
 
 	// Where OpenSSL puts the created certificates in PEM (unencrypted) format
 	// and in the form 'cert_serial_number.pem' (e.g. '07.pem')
@@ -102,7 +94,7 @@ var (
 	File *FilePath
 )
 
-// Set the Certificate Authority’s structure.
+// Set the directory structure.
 func init() {
 	log.SetFlags(0)
 	log.SetPrefix("FAIL! ")
@@ -117,7 +109,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	root := filepath.Join(user.HomeDir, _DIR_CA)
+	root := filepath.Join(user.HomeDir, _DIR_ROOT)
 
 	Dir = &DirPath{
 		Root:    root,
@@ -125,7 +117,6 @@ func init() {
 		NewCert: filepath.Join(root, "newcerts"),
 		Key:     filepath.Join(root, "private"),
 		Revok:   filepath.Join(root, "crl"),
-		Misc:    filepath.Join(root, "misc"),
 	}
 
 	File = &FilePath{
@@ -167,33 +158,34 @@ func (s *keySize) String() string {
 }
 
 var (
-	_IsRootCA  = flag.Bool("root-ca", false, "create the Certification Authority's structure")
-	_IsRequest = flag.Bool("req", false, "create a certificate request")
-	_IsSignReq = flag.Bool("sign", false, "sign a certificate request")
-	_IsLangGo  = flag.Bool("lang-go", false, "generate file for Go language with certificate in binary")
+	fIsNew     = flag.Bool("new", false, "create the directory structure to handle the certificates")
+	fIsCA      = flag.Bool("ca", false, "create the Certification Authority")
+	fIsRequest = flag.Bool("req", false, "create a certificate request")
+	fIsSignReq = flag.Bool("sign", false, "sign a certificate request")
+	fIsLangGo  = flag.Bool("lang-go", false, "generate file for Go language with certificate in binary")
 
-	_KeySize keySize = 2048 // default
-	_Years           = flag.Int("years", 1,
+	fKeySize keySize = 2048 // default
+	fYears           = flag.Int("years", 1,
 		"number of years a certificate generated is valid;\n\twith flag 'root-ca', the default is 10 years")
 
-	_IsCheck = flag.Bool("chk", false, "checking")
+	fIsCheck = flag.Bool("chk", false, "checking")
 
-	_IsCert = flag.Bool("cert", false, "the file is a certificate")
-	_IsKey  = flag.Bool("key", false, "the file is a private key")
+	fIsCert = flag.Bool("cert", false, "the file is a certificate")
+	fIsKey  = flag.Bool("key", false, "the file is a private key")
 
-	_IsInfo     = flag.Bool("i", false, "print out information of the certificate")
-	_IsEndDate  = flag.Bool("end-date", false, "print the date until it is valid")
-	_IsHash     = flag.Bool("hash", false, "print the hash value")
-	_IsFullInfo = flag.Bool("full", false, "print extensive information")
-	_IsIssuer   = flag.Bool("issuer", false, "print the issuer")
-	_IsName     = flag.Bool("name", false, "print the subject")
+	fIsInfo     = flag.Bool("i", false, "print out information of the certificate")
+	fIsEndDate  = flag.Bool("end-date", false, "print the date until it is valid")
+	fIsHash     = flag.Bool("hash", false, "print the hash value")
+	fIsInfoFull = flag.Bool("full", false, "print extensive information")
+	fIsIssuer   = flag.Bool("issuer", false, "print the issuer")
+	fIsName     = flag.Bool("name", false, "print the subject")
 
-	_IsCertList = flag.Bool("lc", false, "list the certificates in the Root CA directory")
-	_IsReqList  = flag.Bool("lr", false, "list the request certificates in the Root CA directory")
+	fIsCertList = flag.Bool("lc", false, "list the certificates built")
+	fIsReqList  = flag.Bool("lr", false, "list the request certificates built")
 )
 
 func init() {
-	flag.Var(&_KeySize, "size", "size in bits for the RSA key")
+	flag.Var(&fKeySize, "size", "size in bits for the RSA key")
 }
 
 func usage() {
@@ -201,15 +193,18 @@ func usage() {
 
 Usage: easycert [options]
 
-- Create directory structure for the Certification Authority:
-	-root-ca [-size -years]
+- Directory:
+	-new [-ca -size -years]
+
+- Certificate requests:
+	-req [-size -years] [-sign] name
+	-sign name
+
 - Copy in actual directory files of language Go to handle the CA certificate:
 	-lang-go
 
-- Generate certificate request:
-	-req [-size -years] [-sign] name
-- Sign certificate request:
-	-sign name
+- List:
+	-lc -lr
 
 - ChecK:
 	-chk [-cert|-key] file | name
@@ -218,9 +213,6 @@ Usage: easycert [options]
 	-i [-cert|-key] file | name
 	-cert [-end-date -hash -issuer -name] file | name
 	-cert -full file | name
-
-- List:
-	-lc -lr
 
 `)
 
@@ -235,7 +227,7 @@ func main() {
 	isExit := false
 
 	if len(flag.Args()) == 0 {
-		if *_IsCertList {
+		if *fIsCertList {
 			match, err := filepath.Glob(filepath.Join(Dir.Cert, "*"+EXT_CERT))
 			if err != nil {
 				log.Fatal(err)
@@ -243,7 +235,7 @@ func main() {
 			printCert(match)
 			isExit = true
 		}
-		if *_IsReqList {
+		if *fIsReqList {
 			match, err := filepath.Glob(filepath.Join(Dir.Root, "*"+EXT_REQUEST))
 			if err != nil {
 				log.Fatal(err)
@@ -258,7 +250,7 @@ func main() {
 
 	filename := ""
 
-	if *_IsLangGo || *_IsRootCA {
+	if *fIsLangGo || *fIsCA {
 		filename = _NAME_CA
 	} else {
 		filename = flag.Args()[0]
@@ -267,60 +259,60 @@ func main() {
 	File.Key = filepath.Join(Dir.Key, filename+EXT_KEY)
 	File.Request = filepath.Join(Dir.Root, filename+EXT_REQUEST)
 
-	if !*_IsRootCA {
+	if !*fIsCA {
 		if filename[0] != '.' && filename[0] != os.PathSeparator {
-			if *_IsCert {
+			if *fIsCert {
 				filename = filepath.Join(Dir.Cert, filename+EXT_CERT)
-			} else if *_IsKey {
+			} else if *fIsKey {
 				filename = filepath.Join(Dir.Key, filename+EXT_KEY)
 			}
 		}
 	}
 
-	if *_IsCheck {
-		if *_IsCert {
+	if *fIsCheck {
+		if *fIsCert {
 			CheckCert(filename)
-		} else if *_IsKey {
+		} else if *fIsKey {
 			CheckKey(filename)
 		}
 		os.Exit(0)
 	}
 
-	if *_IsInfo {
-		if *_IsCert {
-			fmt.Print(CertInfo(filename))
-		} else if *_IsKey {
-			fmt.Print(KeyInfo(filename))
+	if *fIsInfo {
+		if *fIsCert {
+			fmt.Print(InfoCert(filename))
+		} else if *fIsKey {
+			fmt.Print(InfoKey(filename))
 		}
 		os.Exit(0)
 	}
-	if *_IsCert {
-		if *_IsEndDate {
-			fmt.Print(EndDateInfo(filename))
+	if *fIsCert {
+		if *fIsEndDate {
+			fmt.Print(InfoEndDate(filename))
 		}
-		if *_IsHash {
+		if *fIsHash {
 			fmt.Print(HashInfo(filename))
 		}
-		if *_IsFullInfo {
-			fmt.Print(FullInfo(filename))
+		if *fIsInfoFull {
+			fmt.Print(InfoFull(filename))
 		}
-		if *_IsIssuer {
-			fmt.Print(IssuerInfo(filename))
+		if *fIsIssuer {
+			fmt.Print(InfoIssuer(filename))
 		}
-		if *_IsName {
-			fmt.Print(NameInfo(filename))
+		if *fIsName {
+			fmt.Print(InfoName(filename))
 		}
 		os.Exit(0)
 	}
 
-	if *_IsRequest {
+	if *fIsRequest {
 		if _, err := os.Stat(File.Request); !os.IsNotExist(err) {
 			log.Fatalf("Certificate request already exists: %q", File.Request)
 		}
 		NewRequest()
 		isExit = true
 	}
-	if *_IsSignReq {
+	if *fIsSignReq {
 		if _, err := os.Stat(File.Cert); !os.IsNotExist(err) {
 			log.Fatalf("Certificate already exists: %q", File.Cert)
 		}
@@ -334,33 +326,29 @@ func main() {
 		os.Exit(0)
 	}
 
-	if *_IsLangGo {
+	if *fIsLangGo {
 		for _, v := range []string{_FILE_SERVER_GO, _FILE_CLIENT_GO} {
 			if _, err := os.Stat(v); !os.IsNotExist(err) {
 				log.Fatalf("File already exists: %q", v)
 			}
 		}
-
-		for _, v := range []string{_FILE_SERVER_GO, _FILE_CLIENT_GO} {
-			src, err := ioutil.ReadFile(filepath.Join(Dir.Misc, v))
-			if err != nil {
-				log.Fatal(err)
-			}
-			if err = ioutil.WriteFile(v, src, 0666); err != nil {
-				log.Fatal(err)
-			}
-		}
+		Cert2Lang()
 		os.Exit(0)
 	}
 
-	if *_IsRootCA {
+	if *fIsNew {
 		if _, err := os.Stat(Dir.Root); !os.IsNotExist(err) {
-			log.Fatalf("The Certification Authority's structure exists: %q", Dir.Root)
+			log.Fatalf("The directory structure exists: %q", Dir.Root)
 		}
 		SetupDir()
-		*_Years = 10
-		RootCA()
-		Cert2Lang()
+		isExit = true
+	}
+	if *fIsCA {
+		*fYears = 10
+		BuildCA()
+		os.Exit(0)
+	}
+	if isExit {
 		os.Exit(0)
 	}
 
@@ -371,7 +359,7 @@ func main() {
 func SetupDir() {
 	var err error
 
-	for _, v := range []string{Dir.Root, Dir.Cert, Dir.NewCert, Dir.Key, Dir.Revok, Dir.Misc} {
+	for _, v := range []string{Dir.Root, Dir.Cert, Dir.NewCert, Dir.Key, Dir.Revok} {
 		if err = os.Mkdir(v, 0755); err != nil {
 			log.Fatal(err)
 		}
@@ -449,11 +437,15 @@ func SetupDir() {
 
 // Cert2Lang creates files in language Go to handle the CA certificate.
 func Cert2Lang() {
-	CACertBlock, err := ioutil.ReadFile(File.Cert)
+	CACertBlock, err := ioutil.ReadFile(filepath.Join(Dir.Cert, _NAME_CA+EXT_CERT))
 	if err != nil {
 		log.Fatal(err)
 	}
-	CAKeyBlock, err := ioutil.ReadFile(File.Key)
+	CertBlock, err := ioutil.ReadFile(File.Cert)
+	if err != nil {
+		log.Fatal(err)
+	}
+	KeyBlock, err := ioutil.ReadFile(File.Key)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -465,8 +457,7 @@ func Cert2Lang() {
 
 	// Server
 
-	file, err := os.OpenFile(filepath.Join(Dir.Misc, _FILE_SERVER_GO),
-		os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	file, err := os.OpenFile(_FILE_SERVER_GO, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -479,15 +470,17 @@ func Cert2Lang() {
 		Date       string
 		ValidUntil string
 		CACert     string
-		CAKey      string
+		Cert       string
+		Key        string
 	}{
 		runtime.GOOS,
 		runtime.GOARCH,
 		strings.TrimRight(string(version), "\n"),
 		time.Now().Format(time.RFC822),
-		fmt.Sprint(strings.TrimRight(EndDateInfo(File.Cert), "\n")),
+		fmt.Sprint(strings.TrimRight(InfoEndDate(File.Cert), "\n")),
 		GoBlock(CACertBlock).String(),
-		GoBlock(CAKeyBlock).String(),
+		GoBlock(CertBlock).String(),
+		GoBlock(KeyBlock).String(),
 	}
 
 	err = tmpl.Execute(file, data)
@@ -498,8 +491,7 @@ func Cert2Lang() {
 
 	// Client
 
-	file, err = os.OpenFile(filepath.Join(Dir.Misc, _FILE_CLIENT_GO),
-		os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	file, err = os.OpenFile(_FILE_CLIENT_GO, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}

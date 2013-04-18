@@ -16,13 +16,13 @@ import (
 	"strconv"
 )
 
-// RootCA creates a Certification Authority with the key no encrypted.
-func RootCA() {
+// BuildCA creates a Certification Authority.
+func BuildCA() {
 	fmt.Print("\n== Build Certification Authority\n\n")
 
-	args := []string{"req", "-new", "-nodes",
+	args := []string{"req", "-new",
 		"-config", File.Config, "-out", File.Request, "-keyout", File.Key,
-		"-newkey", "rsa:" + _KeySize.String(),
+		"-newkey", "rsa:" + fKeySize.String(),
 	}
 	fmt.Printf("%s", openssl(args...))
 
@@ -30,7 +30,7 @@ func RootCA() {
 
 	args = []string{"ca", "-selfsign", "-batch", "-create_serial",
 		"-config", File.Config, "-keyfile", File.Key, "-in", File.Request, "-out", File.Cert,
-		"-days", strconv.Itoa(365 * *_Years),
+		"-days", strconv.Itoa(365 * *fYears),
 		"-extensions", "v3_ca",
 	}
 	fmt.Printf("%s", openssl(args...))
@@ -50,7 +50,7 @@ func RootCA() {
 func NewRequest() {
 	args := []string{"req", "-new", "-nodes",
 		"-config", File.Config, "-keyout", File.Key, "-out", File.Request,
-		"-newkey", "rsa:" + _KeySize.String(),
+		"-newkey", "rsa:" + fKeySize.String(),
 	}
 	fmt.Printf("%s", openssl(args...))
 
@@ -65,7 +65,7 @@ func NewRequest() {
 func SignReq() {
 	args := []string{"ca", "-policy", "policy_anything",
 		"-config", File.Config, "-in", File.Request, "-out", File.Cert,
-		"-days", strconv.Itoa(365 * *_Years),
+		"-days", strconv.Itoa(365 * *fYears),
 		//"-keyfile", File.Key,
 	}
 	fmt.Printf("%s", openssl(args...))
@@ -99,28 +99,28 @@ func CheckKey(file string) {
 // == Information
 //
 
-// CertInfo prints the certificate in text.
-func CertInfo(file string) string {
+// InfoCert prints the certificate in text.
+func InfoCert(file string) string {
 	args := []string{"x509", "-text", "-noout", "-in", file}
 	return string(openssl(args...))
 }
 
-// KeyInfo prints the private key in text.
-func KeyInfo(file string) string {
+// InfoKey prints the private key in text.
+func InfoKey(file string) string {
 	args := []string{"rsa", "-text", "-noout", "-in", file}
 	return string(openssl(args...))
 }
 
 // * * *
 
-// FullInfo prints all information of a certificate.
-func FullInfo(file string) string {
+// InfoFull prints all information of a certificate.
+func InfoFull(file string) string {
 	args := []string{"x509", "-subject", "-issuer", "-enddate", "-noout", "-in", file}
 	return string(openssl(args...))
 }
 
-// EndDateInfo prints the last date that it is valid.
-func EndDateInfo(file string) string {
+// InfoEndDate prints the last date that it is valid.
+func InfoEndDate(file string) string {
 	args := []string{"x509", "-enddate", "-noout", "-in", file}
 	return string(openssl(args...))
 }
@@ -131,14 +131,14 @@ func HashInfo(file string) string {
 	return string(openssl(args...))
 }
 
-// IssuerInfo prints the issuer.
-func IssuerInfo(file string) string {
+// InfoIssuer prints the issuer.
+func InfoIssuer(file string) string {
 	args := []string{"x509", "-issuer", "-noout", "-in", file}
 	return string(openssl(args...))
 }
 
-// NameInfo prints the subject.
-func NameInfo(file string) string {
+// InfoName prints the subject.
+func InfoName(file string) string {
 	args := []string{"x509", "-subject", "-noout", "-in", file}
 	return string(openssl(args...))
 }
