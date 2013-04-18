@@ -12,16 +12,12 @@ Wrap over OpenSSL to create and handle certificates.
 
 In the first, there is to create the directory structure:
 
-  easycert -new
+	easycert -new
 
-which creates '.cert' in your HOME directory.
+which creates directory '.cert' in your HOME directory.
 
 Now, can be generated the certificate requests to be signed for a
 Certification Authority.
-
-Note: When it is used a flag to checking or printing a certificate or private key,
-it can be used a file (using an absolute or relative path) or a name which is
-looked for in the certificates directory.
 
 ## License
 

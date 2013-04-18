@@ -10,14 +10,10 @@
 //
 //   easycert -new
 //
-// which creates '.cert' in your HOME directory.
+// which creates directory '.cert' in your HOME directory.
 //
 // Now, can be generated the certificate requests to be signed for a
 // Certification Authority.
-//
-// Note: When it is used a flag to checking or printing a certificate or private key,
-// it can be used a file (using an absolute or relative path) or a name which is
-// looked for in the certificates directory.
 package main
 
 import (
@@ -162,11 +158,14 @@ var (
 	fIsCA      = flag.Bool("ca", false, "create the Certification Authority")
 	fIsRequest = flag.Bool("req", false, "create a certificate request")
 	fIsSignReq = flag.Bool("sign", false, "sign a certificate request")
-	fIsLangGo  = flag.Bool("lang-go", false, "generate file for Go language with certificate in binary")
 
 	fKeySize keySize = 2048 // default
 	fYears           = flag.Int("years", 1,
-		"number of years a certificate generated is valid;\n\twith flag 'root-ca', the default is 10 years")
+		"number of years a certificate generated is valid;\n\twith flag 'ca', the default is 10 years")
+
+	fIsLangGo   = flag.Bool("lang-go", false, "generate files in Go language to handle some certificate")
+	fCACert     = flag.String("cert-ca", _NAME_CA, "name or file of CA's certificate")
+	fServerCert = flag.String("cert-server", "", "name of server's certificate")
 
 	fIsCheck = flag.Bool("chk", false, "checking")
 
@@ -197,22 +196,25 @@ Usage: easycert [options]
 	-new [-ca -size -years]
 
 - Certificate requests:
-	-req [-size -years] [-sign] name
-	-sign name
+	-req [-size -years] [-sign] NAME
+	-sign NAME
 
-- Copy in actual directory files of language Go to handle the CA certificate:
-	-lang-go
+- Create files for some language:
+	-lang-go -cert-server [-cert-ca]
 
 - List:
 	-lc -lr
 
 - ChecK:
-	-chk [-cert|-key] file | name
+	-chk [-cert|-key] NAME|FILENAME
 
 - Information:
-	-i [-cert|-key] file | name
-	-cert [-end-date -hash -issuer -name] file | name
-	-cert -full file | name
+	-i [-cert|-key] NAME|FILENAME
+	-cert [-end-date -hash -issuer -name] NAME|FILENAME
+	-cert -full NAME|FILENAME
+
+NOTE: FILENAME is the path of a file (name and extension), while NAME is the
+name of a file to look for in the certificates directory.
 
 `)
 
@@ -246,20 +248,41 @@ func main() {
 		if isExit {
 			os.Exit(0)
 		}
+		if flag.NFlag() == 0 {
+			usage()
+		}
 	}
 
 	filename := ""
 
-	if *fIsLangGo || *fIsCA {
-		filename = _NAME_CA
-	} else {
-		filename = flag.Args()[0]
-	}
-	File.Cert = filepath.Join(Dir.Cert, filename+EXT_CERT)
-	File.Key = filepath.Join(Dir.Key, filename+EXT_KEY)
-	File.Request = filepath.Join(Dir.Root, filename+EXT_REQUEST)
+	// Set absolute paths.
+	switch {
+	case *fIsRequest, *fIsSignReq, *fIsCA:
+		if *fIsCA {
+			filename = _NAME_CA
+		} else {
+			filename = flag.Args()[0]
+		}
+		File.Cert = filepath.Join(Dir.Cert, filename+EXT_CERT)
+		File.Key = filepath.Join(Dir.Key, filename+EXT_KEY)
+		File.Request = filepath.Join(Dir.Root, filename+EXT_REQUEST)
 
-	if !*fIsCA {
+	case *fIsLangGo:
+		if *fCACert == "" || *fServerCert == "" {
+			log.Print("Some flag has not been set")
+			usage()
+		}
+		if (*fCACert)[0] != '.' && (*fCACert)[0] != os.PathSeparator {
+			*fCACert = filepath.Join(Dir.Cert, *fCACert+EXT_CERT)
+		}
+		File.Cert = filepath.Join(Dir.Cert, *fServerCert+EXT_CERT)
+		File.Key = filepath.Join(Dir.Key, *fServerCert+EXT_KEY)
+
+	case *fIsNew:
+
+	default:
+		filename = flag.Args()[0]
+
 		if filename[0] != '.' && filename[0] != os.PathSeparator {
 			if *fIsCert {
 				filename = filepath.Join(Dir.Cert, filename+EXT_CERT)
@@ -435,9 +458,9 @@ func SetupDir() {
 	fmt.Printf("* Directory structure created in %q\n", Dir.Root)
 }
 
-// Cert2Lang creates files in language Go to handle the CA certificate.
+// Cert2Lang creates files in language Go to handle the certificate.
 func Cert2Lang() {
-	CACertBlock, err := ioutil.ReadFile(filepath.Join(Dir.Cert, _NAME_CA+EXT_CERT))
+	CACertBlock, err := ioutil.ReadFile(*fCACert)
 	if err != nil {
 		log.Fatal(err)
 	}
