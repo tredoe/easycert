@@ -16,13 +16,13 @@ import (
 	"strconv"
 )
 
-// BuildCA creates a Certification Authority.
+// BuildCA creates a certification authority.
 func BuildCA() {
 	fmt.Print("\n== Build Certification Authority\n\n")
 
 	args := []string{"req", "-new",
 		"-config", File.Config, "-out", File.Request, "-keyout", File.Key,
-		"-newkey", "rsa:" + fKeySize.String(),
+		"-newkey", "rsa:" + RSASize.String(),
 	}
 	fmt.Printf("%s", openssl(args...))
 
@@ -30,7 +30,7 @@ func BuildCA() {
 
 	args = []string{"ca", "-selfsign", "-batch", "-create_serial",
 		"-config", File.Config, "-keyfile", File.Key, "-in", File.Request, "-out", File.Cert,
-		"-days", strconv.Itoa(365 * *fYears),
+		"-days", strconv.Itoa(365 * *Years),
 		"-extensions", "v3_ca",
 	}
 	fmt.Printf("%s", openssl(args...))
@@ -50,7 +50,7 @@ func BuildCA() {
 func NewRequest() {
 	args := []string{"req", "-new", "-nodes",
 		"-config", File.Config, "-keyout", File.Key, "-out", File.Request,
-		"-newkey", "rsa:" + fKeySize.String(),
+		"-newkey", "rsa:" + RSASize.String(),
 	}
 	fmt.Printf("%s", openssl(args...))
 
@@ -65,7 +65,7 @@ func NewRequest() {
 func SignReq() {
 	args := []string{"ca", "-policy", "policy_anything",
 		"-config", File.Config, "-in", File.Request, "-out", File.Cert,
-		"-days", strconv.Itoa(365 * *fYears),
+		"-days", strconv.Itoa(365 * *Years),
 		//"-keyfile", File.Key,
 	}
 	fmt.Printf("%s", openssl(args...))

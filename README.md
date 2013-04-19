@@ -14,10 +14,10 @@ In the first, there is to create the directory structure:
 
 	easycert -new
 
-which creates directory '.cert' in your HOME directory.
+which creates the directory '.cert' in your HOME directory.
 
-Now, can be generated the certificate requests to be signed for a
-Certification Authority.
+Then, can be generated the certificate requests to be signed by a certification
+authority.
 
 ## License
 
