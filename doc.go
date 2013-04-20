@@ -23,25 +23,25 @@ NOTE: FILENAME is the path of a certificate file, while NAME is the name
 of a file to look for in the certificates directory.
 
 * Directory:
-  -new [-ca -rsa-size -years]
+	-new [-ca -rsa-size -years]
 
 * Certificate requests:
-  -req [-rsa-size -years] [-sign] [-host] NAME
-  -sign NAME
+	-req [-rsa-size -years] [-sign] [-host] NAME
+	-sign NAME
 
 * Create files for some language:
-  -lang-go -server-cert [-ca-cert]
+	-lang-go [-ca-cert] -server-cert
 
 * ChecK:
-  -chk [-cert|-key] NAME|FILENAME
+	-chk [-cert|-key] NAME|FILENAME
 
 * Information:
-  -cat [-cert|-key] NAME|FILENAME
-  -i [-end-date -hash -issuer -name] NAME|FILENAME
-  -i -full NAME|FILENAME
+	-cat [-cert|-key] NAME|FILENAME
+	-i [-end-date -hash -issuer -name] NAME|FILENAME
+	-i -full NAME|FILENAME
 
 * List:
-  -lc -lr
+	-lc -lr
 
 The flags are:
   -ca=false: create the certification authority

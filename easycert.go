@@ -28,19 +28,19 @@ const (
 	// Where the configuration template is installed through "go get".
 	_DIR_CONFIG = "github.com/kless/easycert/data"
 
-	_DIR_ROOT = ".cert" // Directory to store the certificates.
-	_NAME_CA  = "ca"    // Name for files related to the CA.
+	DIR_ROOT = ".cert" // Directory to store the certificates.
+	NAME_CA  = "ca"    // Name for files related to the CA.
 
-	_FILE_CONFIG    = "openssl.cfg"
-	_FILE_SERVER_GO = "z-cert_srv.go"
-	_FILE_CLIENT_GO = "z-cert_cl.go"
+	FILE_CONFIG    = "openssl.cfg"
+	FILE_SERVER_GO = "z-srv_cert.go"
+	FILE_CLIENT_GO = "z-clt_cert.go"
 )
 
 // File extensions.
 const (
 	EXT_CERT  = ".crt" // Certificate (can be publicly distributed)
 	EXT_KEY   = ".key" // Private key (with restrictive permissions)
-	EXT_REVOK = ".crl" // Certificate Revokation List (can be publicly distributed)
+	EXT_REVOK = ".crl" // Certificate revokation list (can be publicly distributed)
 
 	// Certificate Request (it will be signed by the CA in order to create the
 	// server certificate. Afterwards it is not needed and can be deleted).
@@ -95,7 +95,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	root := filepath.Join(user.HomeDir, _DIR_ROOT)
+	root := filepath.Join(user.HomeDir, DIR_ROOT)
 
 	Dir = &DirPath{
 		Root:    root,
@@ -107,7 +107,7 @@ func init() {
 
 	File = &FilePath{
 		Cmd:    cmdPath,
-		Config: filepath.Join(Dir.Root, _FILE_CONFIG),
+		Config: filepath.Join(Dir.Root, FILE_CONFIG),
 		Index:  filepath.Join(Dir.Root, "index.txt"),
 		Serial: filepath.Join(Dir.Root, "serial"),
 	}
@@ -144,35 +144,34 @@ func (s *rsaSizeT) String() string {
 }
 
 var (
-	IsNew = flag.Bool("new", false, "create the directory structure to handle the certificates")
-	IsCA  = flag.Bool("ca", false, "create the certification authority")
+	IsMakeDir = flag.Bool("mkdir", false, "make the directory structure to handle the certificates")
+	IsCA      = flag.Bool("ca", false, "create the certification authority")
 
 	RSASize rsaSizeT = 2048 // default
 	Years            = flag.Int("years", 1,
 		"number of years a certificate generated is valid;\n\twith `-ca` flag, the default is 10 years")
 
-	IsRequest = flag.Bool("req", false, "create a certificate request")
+	IsRequest = flag.Bool("req", false, "certificate request")
 	IsSignReq = flag.Bool("sign", false, "sign a certificate request")
 	Host      = flag.String("host", "", "comma-separated hostnames and IPs to generate a certificate for")
 
 	IsGoLang   = flag.Bool("lang-go", false, "generate files in Go language to handle some certificate")
-	CACert     = flag.String("ca-cert", _NAME_CA, "name or file of CA's certificate")
+	CACert     = flag.String("ca-cert", NAME_CA, "name or file of CA's certificate")
 	ServerCert = flag.String("server-cert", "", "name of server's certificate")
 
 	IsCheck = flag.Bool("chk", false, "checking")
-	IsCert  = flag.Bool("cert", false, "the file is a certificate")
-	IsKey   = flag.Bool("key", false, "the file is a private key")
+	IsCert  = flag.Bool("cert", false, "certificate")
+	IsKey   = flag.Bool("key", false, "private key")
 
-	IsCat      = flag.Bool("cat", false, "show certificate or key")
-	IsInfo     = flag.Bool("i", false, "print out information of the certificate")
+	IsCat      = flag.Bool("cat", false, "show the content")
+	IsInfo     = flag.Bool("info", false, "print out information of the certificate")
 	IsEndDate  = flag.Bool("end-date", false, "print the date until it is valid")
 	IsHash     = flag.Bool("hash", false, "print the hash value")
 	IsFullInfo = flag.Bool("full", false, "print extensive information")
 	IsIssuer   = flag.Bool("issuer", false, "print the issuer")
 	IsName     = flag.Bool("name", false, "print the subject")
 
-	IsCertList = flag.Bool("lc", false, "list the certificates built")
-	IsReqList  = flag.Bool("lr", false, "list the request certificates built")
+	IsList = flag.Bool("ls", false, "list files in certificates directory")
 )
 
 func init() {
@@ -185,26 +184,25 @@ func usage() {
 NOTE: FILENAME is the path of a certificate file, while NAME is the name
 of a file to look for in the certificates directory.
 
-* Directory:
-  -new [-ca -rsa-size -years]
+* Make directory:
+	-mkdir [-ca -rsa-size -years]
 
-* Certificate requests:
-  -req [-rsa-size -years] [-sign] [-host] NAME
-  -sign NAME
+* Create certificate request:
+	-req [-rsa-size -years] [-sign] [-host] NAME
+	-sign NAME
 
 * Create files for some language:
-  -lang-go -server-cert [-ca-cert]
-
-* ChecK:
-  -chk [-cert|-key] NAME|FILENAME
-
-* Information:
-  -cat [-cert|-key] NAME|FILENAME
-  -i [-end-date -hash -issuer -name] NAME|FILENAME
-  -i -full NAME|FILENAME
+	-lang-go [-ca-cert] -server-cert
 
 * List:
-  -lc -lr
+	-ls (-cert -req -key)
+
+* Information:
+	-cat (-cert|-key) NAME|FILENAME
+	-info -full | (-end-date -hash -issuer -name) NAME|FILENAME
+
+* ChecK:
+	-chk (-cert|-key) NAME|FILENAME
 
 The flags are:
 `)
@@ -224,8 +222,8 @@ func main() {
 
 	isExit := false
 
-	if len(flag.Args()) == 0 {
-		if *IsCertList {
+	if *IsList {
+		if *IsCert {
 			match, err := filepath.Glob(filepath.Join(Dir.Cert, "*"+EXT_CERT))
 			if err != nil {
 				log.Fatal(err)
@@ -233,94 +231,58 @@ func main() {
 			printCert(match)
 			isExit = true
 		}
-		if *IsReqList {
+		if *IsRequest {
 			match, err := filepath.Glob(filepath.Join(Dir.Root, "*"+EXT_REQUEST))
 			if err != nil {
 				log.Fatal(err)
 			}
 			printCert(match)
-			os.Exit(0)
+			isExit = true
 		}
-		if isExit {
-			os.Exit(0)
+		if *IsKey {
+			match, err := filepath.Glob(filepath.Join(Dir.Key, "*"+EXT_KEY))
+			if err != nil {
+				log.Fatal(err)
+			}
+			printCert(match)
+			isExit = true
 		}
+
+		if !isExit {
+			log.Fatal("Missing required flag in `-ls` flag")
+		}
+		os.Exit(0)
 	}
 
-	filename := ""
-
 	// Set absolute paths.
+	filename := ""
 	switch {
 	case *IsRequest, *IsSignReq, *IsCA:
 		if *IsCA {
-			filename = _NAME_CA
+			filename = NAME_CA
 		} else {
+			if flag.NArg() == 0 {
+				log.Fatal("Missing required argument")
+			}
 			filename = flag.Args()[0]
 		}
 		File.Cert = filepath.Join(Dir.Cert, filename+EXT_CERT)
 		File.Key = filepath.Join(Dir.Key, filename+EXT_KEY)
 		File.Request = filepath.Join(Dir.Root, filename+EXT_REQUEST)
 
-	case *IsGoLang:
-		if *CACert == "" || *ServerCert == "" {
-			log.Fatal("Missing required parameter in `-ca-cert` or `-server-cert` flag")
+	case *IsCat, *IsInfo, *IsCheck:
+		if flag.NArg() == 0 {
+			log.Fatal("Missing required argument")
 		}
-		if (*CACert)[0] != '.' && (*CACert)[0] != os.PathSeparator {
-			*CACert = filepath.Join(Dir.Cert, *CACert+EXT_CERT)
-		}
-		File.Cert = filepath.Join(Dir.Cert, *ServerCert+EXT_CERT)
-		File.Key = filepath.Join(Dir.Key, *ServerCert+EXT_KEY)
-
-	case *IsNew:
-
-	default:
 		filename = flag.Args()[0]
 
 		if filename[0] != '.' && filename[0] != os.PathSeparator {
-			if *IsCert {
+			if *IsCert || *IsInfo {
 				filename = filepath.Join(Dir.Cert, filename+EXT_CERT)
 			} else if *IsKey {
 				filename = filepath.Join(Dir.Key, filename+EXT_KEY)
 			}
 		}
-	}
-
-	if *IsCheck {
-		if *IsCert {
-			CheckCert(filename)
-		} else if *IsKey {
-			CheckKey(filename)
-		}
-		os.Exit(0)
-	}
-
-	if *IsCat {
-		if *IsCert {
-			fmt.Print(InfoCert(filename))
-		} else if *IsKey {
-			fmt.Print(InfoKey(filename))
-		}
-		os.Exit(0)
-	}
-
-	if *IsInfo {
-		if *IsFullInfo {
-			fmt.Print(InfoFull(filename))
-			os.Exit(0)
-		}
-
-		if *IsEndDate {
-			fmt.Print(InfoEndDate(filename))
-		}
-		if *IsHash {
-			fmt.Print(HashInfo(filename))
-		}
-		if *IsIssuer {
-			fmt.Print(InfoIssuer(filename))
-		}
-		if *IsName {
-			fmt.Print(InfoName(filename))
-		}
-		os.Exit(0)
 	}
 
 	if *IsRequest {
@@ -345,28 +307,105 @@ func main() {
 	}
 
 	if *IsGoLang {
-		for _, v := range []string{_FILE_SERVER_GO, _FILE_CLIENT_GO} {
+		for _, v := range []string{FILE_SERVER_GO, FILE_CLIENT_GO} {
 			if _, err := os.Stat(v); !os.IsNotExist(err) {
 				log.Fatalf("File already exists: %q", v)
 			}
 		}
-		Cert2Lang()
+
+		if *ServerCert == "" {
+			log.Fatal("Missing required parameter in `-server-cert` flag")
+		}
+
+		if *CACert == "" {
+			log.Fatal("Missing required parameter in `-ca-cert` flag")
+		}
+		if (*CACert)[0] != '.' && (*CACert)[0] != os.PathSeparator {
+			*CACert = filepath.Join(Dir.Cert, *CACert+EXT_CERT)
+		}
+
+		Cert2Lang(
+			filepath.Join(Dir.Cert, *ServerCert+EXT_CERT),
+			filepath.Join(Dir.Key, *ServerCert+EXT_KEY),
+		)
 		os.Exit(0)
 	}
 
-	if *IsNew {
+	if *IsCat {
+		if *IsCert {
+			fmt.Print(InfoCert(filename))
+		} else if *IsKey {
+			fmt.Print(InfoKey(filename))
+		} else {
+			log.Fatal("Missing required flag in `-cat` flag")
+		}
+		os.Exit(0)
+	}
+
+	if *IsInfo {
+		if *IsFullInfo {
+			fmt.Print(InfoFull(filename))
+			os.Exit(0)
+		}
+
+		if *IsEndDate {
+			fmt.Print(InfoEndDate(filename))
+			isExit = true
+		}
+		if *IsHash {
+			fmt.Print(HashInfo(filename))
+			isExit = true
+		}
+		if *IsIssuer {
+			fmt.Print(InfoIssuer(filename))
+			isExit = true
+		}
+		if *IsName {
+			fmt.Print(InfoName(filename))
+			isExit = true
+		}
+
+		if !isExit {
+			log.Fatal("Missing required flag in `-info` flag")
+		}
+		os.Exit(0)
+	}
+
+	if *IsCheck {
+		if *IsCert {
+			CheckCert(filename)
+		} else if *IsKey {
+			CheckKey(filename)
+		} else {
+			log.Fatal("Missing required flag in `-chk` flag")
+		}
+		os.Exit(0)
+	}
+
+	if *IsMakeDir {
 		if _, err := os.Stat(Dir.Root); !os.IsNotExist(err) {
 			log.Fatalf("The directory structure exists: %q", Dir.Root)
 		}
 		SetupDir()
 	}
 	if *IsCA {
-		*Years = 10
+		f := flag.Lookup("years")
+		if f == nil {
+			panic("`-years` flag not found")
+		}
+		if f.DefValue == f.Value.String() {
+			*Years = 10
+			//flag.Set("years", "100") // TODO
+		}
+
+		if _, err := os.Stat(File.Cert); !os.IsNotExist(err) {
+			log.Fatal("The certification authority's certificate exists")
+		}
 		BuildCA()
 	}
 }
 
-// SetupDir creates the directory structure.
+// SetupDir makes the directory structure.
 func SetupDir() {
 	var err error
 
@@ -409,7 +448,7 @@ func SetupDir() {
 		log.Fatal("Data directory not found\n", err)
 	}
 
-	configTemplate := filepath.Join(pkg.Dir, _FILE_CONFIG+".tmpl")
+	configTemplate := filepath.Join(pkg.Dir, FILE_CONFIG+".tmpl")
 	if _, err = os.Stat(configTemplate); os.IsNotExist(err) {
 		log.Fatalf("Configuration template not found: %q", configTemplate)
 	}
@@ -446,17 +485,17 @@ func SetupDir() {
 	fmt.Printf("* Directory structure created in %q\n", Dir.Root)
 }
 
-// Cert2Lang creates files in language Go to handle the certificate.
-func Cert2Lang() {
-	CACertBlock, err := ioutil.ReadFile(*CACert)
+// Cert2Lang creates files in Go language to handle the certificate.
+func Cert2Lang(certFile, keyFile string) {
+	caCertBlock, err := ioutil.ReadFile(*CACert)
 	if err != nil {
 		log.Fatal(err)
 	}
-	CertBlock, err := ioutil.ReadFile(File.Cert)
+	certBlock, err := ioutil.ReadFile(certFile)
 	if err != nil {
 		log.Fatal(err)
 	}
-	KeyBlock, err := ioutil.ReadFile(File.Key)
+	keyBlock, err := ioutil.ReadFile(keyFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -468,7 +507,7 @@ func Cert2Lang() {
 
 	// Server
 
-	file, err := os.OpenFile(_FILE_SERVER_GO, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	file, err := os.OpenFile(FILE_SERVER_GO, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -488,10 +527,10 @@ func Cert2Lang() {
 		runtime.GOARCH,
 		strings.TrimRight(string(version), "\n"),
 		time.Now().Format(time.RFC822),
-		fmt.Sprint(strings.TrimRight(InfoEndDate(File.Cert), "\n")),
-		GoBlock(CACertBlock).String(),
-		GoBlock(CertBlock).String(),
-		GoBlock(KeyBlock).String(),
+		fmt.Sprint(strings.TrimRight(InfoEndDate(certFile), "\n")),
+		GoBlock(caCertBlock).String(),
+		GoBlock(certBlock).String(),
+		GoBlock(keyBlock).String(),
 	}
 
 	err = tmpl.Execute(file, data)
@@ -502,7 +541,7 @@ func Cert2Lang() {
 
 	// Client
 
-	file, err = os.OpenFile(_FILE_CLIENT_GO, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
+	file, err = os.OpenFile(FILE_CLIENT_GO, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}

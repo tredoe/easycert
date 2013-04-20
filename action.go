@@ -84,7 +84,7 @@ func SignReq() {
 // CheckCert checks the certificate.
 func CheckCert(file string) {
 	args := []string{"verify",
-		"-CAfile", filepath.Join(Dir.Cert, _NAME_CA+EXT_CERT),
+		"-CAfile", filepath.Join(Dir.Cert, NAME_CA+EXT_CERT),
 		file,
 	}
 	fmt.Printf("%s", openssl(args...))

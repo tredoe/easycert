@@ -27,7 +27,7 @@ import (
 var ServerTLSConfig *tls.Config
 
 func init() {
-	CA_CERT_BLOCK := {{.CACert}}
+	/*CA_CERT_BLOCK := {{.CACert}}*/
 
 	CERT_BLOCK := {{.Cert}}
 
@@ -40,7 +40,7 @@ func init() {
 
 	/*certPool := x509.NewCertPool()
 	if ok := certPool.AppendCertsFromPEM(CA_CERT_BLOCK); !ok {
-		log.Fatal("server: CA certificate not valid")
+		log.Fatal("server: CertPool: CA certificate not valid")
 	}*/
 
 	ServerTLSConfig = &tls.Config{
@@ -77,7 +77,7 @@ func init() {
 
 	certPool := x509.NewCertPool()
 	if ok := certPool.AppendCertsFromPEM(CA_CERT_BLOCK); !ok {
-		log.Fatal("client: CA certificate not valid")
+		log.Fatal("client: CertPool: CA certificate not valid")
 	}
 
 	ClientTLSConfig = &tls.Config{
