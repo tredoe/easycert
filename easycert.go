@@ -144,8 +144,8 @@ func (s *rsaSizeT) String() string {
 }
 
 var (
-	IsMakeDir = flag.Bool("mkdir", false, "make the directory structure to handle the certificates")
-	IsCA      = flag.Bool("ca", false, "create the certification authority")
+	IsSetup = flag.Bool("setup", false, "make the directory structure to handle the certificates")
+	IsCA    = flag.Bool("ca", false, "create the certification authority")
 
 	RSASize rsaSizeT = 2048 // default
 	Years            = flag.Int("years", 1,
@@ -184,8 +184,8 @@ func usage() {
 NOTE: FILENAME is the path of a certificate file, while NAME is the name
 of a file to look for in the certificates directory.
 
-* Make directory:
-	-mkdir [-ca -rsa-size -years]
+* Directory structure:
+	-setup [-ca -rsa-size -years]
 
 * Create certificate request:
 	-req [-rsa-size -years] [-sign] [-host] NAME
@@ -382,11 +382,11 @@ func main() {
 		os.Exit(0)
 	}
 
-	if *IsMakeDir {
+	if *IsSetup {
 		if _, err := os.Stat(Dir.Root); !os.IsNotExist(err) {
 			log.Fatalf("The directory structure exists: %q", Dir.Root)
 		}
-		SetupDir()
+		Setup()
 	}
 	if *IsCA {
 		f := flag.Lookup("years")
@@ -395,7 +395,6 @@ func main() {
 		}
 		if f.DefValue == f.Value.String() {
 			*Years = 10
-			//flag.Set("years", "100") // TODO
 		}
 
 		if _, err := os.Stat(File.Cert); !os.IsNotExist(err) {
@@ -405,11 +404,13 @@ func main() {
 	}
 }
 
-// SetupDir makes the directory structure.
-func SetupDir() {
+// Setup makes the directory structure according to whether it is going to be
+// used for a certification authority or to keep the certificates signed from
+// an external CA.
+func Setup() {
 	var err error
 
-	for _, v := range []string{Dir.Root, Dir.Cert, Dir.NewCert, Dir.Key, Dir.Revok} {
+	for _, v := range []string{Dir.Root, Dir.Cert, Dir.Key} {
 		if err = os.Mkdir(v, 0755); err != nil {
 			log.Fatal(err)
 		}
@@ -418,20 +419,28 @@ func SetupDir() {
 		log.Fatal(err)
 	}
 
-	file, err := os.Create(File.Index)
-	if err != nil {
-		log.Fatal(err)
-	}
-	file.Close()
+	if *IsCA {
+		for _, v := range []string{Dir.NewCert, Dir.Revok} {
+			if err = os.Mkdir(v, 0755); err != nil {
+				log.Fatal(err)
+			}
+		}
 
-	file, err = os.Create(File.Serial)
-	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = file.Write([]byte{'0', '1', '\n'})
-	file.Close()
-	if err != nil {
-		log.Fatal(err)
+		file, err := os.Create(File.Index)
+		if err != nil {
+			log.Fatal(err)
+		}
+		file.Close()
+
+		file, err = os.Create(File.Serial)
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, err = file.Write([]byte{'0', '1', '\n'})
+		file.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	// Configuration template
