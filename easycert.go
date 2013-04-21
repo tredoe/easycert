@@ -13,6 +13,7 @@ import (
 	"go/build"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"os/exec"
 	"os/user"
@@ -65,10 +66,11 @@ type DirPath struct {
 
 // FilePath represents the files structure.
 type FilePath struct {
-	Cmd    string // OpenSSL' path
-	Config string // OpenSSL configuration file.
-	Index  string // Serves as a database for OpenSSL.
-	Serial string // Contains the next certificate’s serial number.
+	Cmd       string // OpenSSL' path
+	Config    string // OpenSSL's configuration file.
+	SrvConfig string // OpenSSL's configuration file for a server.
+	Index     string // Serves as a database for OpenSSL.
+	Serial    string // Contains the next certificate’s serial number.
 
 	Cert    string // Certificate.
 	Key     string // Private key.
@@ -118,12 +120,17 @@ func init() {
 var (
 	errMinSize = errors.New("key size must be at least of 2048")
 	errSize    = errors.New("key size must be multiple of 1024")
+	errHost    = errors.New("must be an IP or DNS")
 )
 
-// rsaSizeT represents the size in bits of RSA key to generate.
-type rsaSizeT int
+// rsaSizeFlag represents the size in bits of RSA key to generate.
+type rsaSizeFlag int
 
-func (s *rsaSizeT) Set(value string) error {
+func (s *rsaSizeFlag) String() string {
+	return strconv.Itoa(int(*s))
+}
+
+func (s *rsaSizeFlag) Set(value string) error {
 	i, err := strconv.Atoi(value)
 	if err != nil {
 		return err
@@ -135,34 +142,64 @@ func (s *rsaSizeT) Set(value string) error {
 	if i%1024 != 0 {
 		return errSize
 	}
-	*s = rsaSizeT(i)
+	*s = rsaSizeFlag(i)
 	return nil
 }
 
-func (s *rsaSizeT) String() string {
-	return strconv.Itoa(int(*s))
+// hostFlag represents the hostname with IP addresses and/or domain names.
+type hostFlag struct {
+	ip  []string
+	dns []string
+}
+
+func (h *hostFlag) String() string {
+	ip := strings.Join(h.ip, ", ")
+	dns := strings.Join(h.dns, ", ")
+
+	if len(ip) != 0 && len(dns) != 0 {
+		return ip + ", " + dns
+	}
+	return ip + dns
+}
+
+func (h *hostFlag) Set(value string) error {
+	for _, v := range strings.Split(value, ",") {
+		v = strings.TrimSpace(v)
+
+		if ip := net.ParseIP(v); ip != nil {
+			h.ip = append(h.ip, "IP:"+ip.String())
+		} else if strings.ContainsRune(v, '.') {
+			h.dns = append(h.dns, "DNS:"+v)
+		} else {
+			return errHost
+		}
+	}
+	return nil
 }
 
 var (
-	IsSetup = flag.Bool("setup", false, "make the directory structure to handle the certificates")
-	IsCA    = flag.Bool("ca", false, "create the certification authority")
+	Host    hostFlag
+	RSASize rsaSizeFlag = 2048 // default
 
-	RSASize rsaSizeT = 2048 // default
-	Years            = flag.Int("years", 1,
-		"number of years a certificate generated is valid;\n\twith `-ca` flag, the default is 10 years")
+	Years = flag.Int("years", 1,
+		"number of years a certificate generated is valid;\n\twith flag `-ca`, the default is 10 years")
 
-	IsRequest = flag.Bool("req", false, "certificate request")
-	IsSignReq = flag.Bool("sign", false, "sign a certificate request")
-	Host      = flag.String("host", "", "comma-separated hostnames and IPs to generate a certificate for")
+	IsSetup      = flag.Bool("setup", false, "make the directory structure to handle the certificates")
+	IsCA         = flag.Bool("ca", false, "create the certification authority")
+	IsNewRequest = flag.Bool("new-req", false, "create certificate request")
+	IsSignReq    = flag.Bool("sign", false, "sign a certificate request")
 
+	IsCheck   = flag.Bool("chk", false, "checking")
+	IsCert    = flag.Bool("cert", false, "certificate")
+	IsRequest = flag.Bool("req", false, "request")
+	IsKey     = flag.Bool("key", false, "private key")
+
+	// Language
 	IsGoLang   = flag.Bool("lang-go", false, "generate files in Go language to handle some certificate")
 	CACert     = flag.String("ca-cert", NAME_CA, "name or file of CA's certificate")
 	ServerCert = flag.String("server-cert", "", "name of server's certificate")
 
-	IsCheck = flag.Bool("chk", false, "checking")
-	IsCert  = flag.Bool("cert", false, "certificate")
-	IsKey   = flag.Bool("key", false, "private key")
-
+	// Information
 	IsCat      = flag.Bool("cat", false, "show the content")
 	IsInfo     = flag.Bool("info", false, "print out information of the certificate")
 	IsEndDate  = flag.Bool("end-date", false, "print the date until it is valid")
@@ -175,6 +212,7 @@ var (
 )
 
 func init() {
+	flag.Var(&Host, "host", "comma-separated hostnames and IPs to generate a certificate for a server")
 	flag.Var(&RSASize, "rsa-size", "size in bits for the RSA key")
 }
 
@@ -188,17 +226,17 @@ of a file to look for in the certificates directory.
 	-setup [-ca -rsa-size -years]
 
 * Create certificate request:
-	-req [-rsa-size -years] [-sign] [-host] NAME
+	-new-req [-rsa-size -years] [-sign] [-host] NAME
 	-sign NAME
 
 * Create files for some language:
 	-lang-go [-ca-cert] -server-cert
 
 * List:
-	-ls (-cert -req -key)
+	-ls (-req -cert -key)
 
 * Information:
-	-cat (-cert|-key) NAME|FILENAME
+	-cat (-req|-cert|-key) NAME|FILENAME
 	-info -full | (-end-date -hash -issuer -name) NAME|FILENAME
 
 * ChecK:
@@ -249,7 +287,7 @@ func main() {
 		}
 
 		if !isExit {
-			log.Fatal("Missing required flag in `-ls` flag")
+			log.Fatal("Missing required flag in `-ls`")
 		}
 		os.Exit(0)
 	}
@@ -257,7 +295,7 @@ func main() {
 	// Set absolute paths.
 	filename := ""
 	switch {
-	case *IsRequest, *IsSignReq, *IsCA:
+	case *IsNewRequest, *IsSignReq, *IsCA:
 		if *IsCA {
 			filename = NAME_CA
 		} else {
@@ -265,6 +303,7 @@ func main() {
 				log.Fatal("Missing required argument")
 			}
 			filename = flag.Args()[0]
+			File.SrvConfig = filepath.Join(Dir.Root, filename+".cfg")
 		}
 		File.Cert = filepath.Join(Dir.Cert, filename+EXT_CERT)
 		File.Key = filepath.Join(Dir.Key, filename+EXT_KEY)
@@ -279,13 +318,15 @@ func main() {
 		if filename[0] != '.' && filename[0] != os.PathSeparator {
 			if *IsCert || *IsInfo {
 				filename = filepath.Join(Dir.Cert, filename+EXT_CERT)
+			} else if *IsRequest {
+				filename = filepath.Join(Dir.Root, filename+EXT_REQUEST)
 			} else if *IsKey {
 				filename = filepath.Join(Dir.Key, filename+EXT_KEY)
 			}
 		}
 	}
 
-	if *IsRequest {
+	if *IsNewRequest {
 		if _, err := os.Stat(File.Request); !os.IsNotExist(err) {
 			log.Fatalf("Certificate request already exists: %q", File.Request)
 		}
@@ -314,11 +355,11 @@ func main() {
 		}
 
 		if *ServerCert == "" {
-			log.Fatal("Missing required parameter in `-server-cert` flag")
+			log.Fatal("Missing required parameter in flag `-server-cert`")
 		}
 
 		if *CACert == "" {
-			log.Fatal("Missing required parameter in `-ca-cert` flag")
+			log.Fatal("Missing required parameter in flag `-ca-cert`")
 		}
 		if (*CACert)[0] != '.' && (*CACert)[0] != os.PathSeparator {
 			*CACert = filepath.Join(Dir.Cert, *CACert+EXT_CERT)
@@ -334,10 +375,12 @@ func main() {
 	if *IsCat {
 		if *IsCert {
 			fmt.Print(InfoCert(filename))
+		} else if *IsRequest {
+			fmt.Print(InfoRequest(filename))
 		} else if *IsKey {
 			fmt.Print(InfoKey(filename))
 		} else {
-			log.Fatal("Missing required flag in `-cat` flag")
+			log.Fatal("Missing required flag in `-cat`")
 		}
 		os.Exit(0)
 	}
@@ -366,7 +409,7 @@ func main() {
 		}
 
 		if !isExit {
-			log.Fatal("Missing required flag in `-info` flag")
+			log.Fatal("Missing required flag in `-info`")
 		}
 		os.Exit(0)
 	}
@@ -374,10 +417,12 @@ func main() {
 	if *IsCheck {
 		if *IsCert {
 			CheckCert(filename)
+		//} else if *IsRequest {
+			//CheckRequest(filename)
 		} else if *IsKey {
 			CheckKey(filename)
 		} else {
-			log.Fatal("Missing required flag in `-chk` flag")
+			log.Fatal("Missing required flag in `-chk`")
 		}
 		os.Exit(0)
 	}
@@ -391,7 +436,7 @@ func main() {
 	if *IsCA {
 		f := flag.Lookup("years")
 		if f == nil {
-			panic("`-years` flag not found")
+			panic("flag `-years` not found")
 		}
 		if f.DefValue == f.Value.String() {
 			*Years = 10
@@ -445,13 +490,6 @@ func Setup() {
 
 	// Configuration template
 
-	host, err := os.Hostname()
-	if err != nil {
-		log.Fatalf("Could not get hostname: %s\n\n"+
-			"You may want to fix your '/etc/hosts' and/or DNS setup",
-			err)
-	}
-
 	pkg, err := build.Import(_DIR_CONFIG, build.Default.GOPATH, build.FindOnly)
 	if err != nil {
 		log.Fatal("Data directory not found\n", err)
@@ -467,27 +505,46 @@ func Setup() {
 		log.Fatal("Parsing error in configuration: ", err)
 	}
 
-	tmpConfigFile, err := os.Create(File.Config)
+	configFile, err := os.Create(File.Config)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	data := struct {
-		RootDir  string
-		HostName string
-		AltNames string
+		RootDir        string
+		HostName       string
+		SubjectAltName string
 	}{
 		Dir.Root,
-		host,
-		"IP.1 = 127.0.0.1",
+		"",
+		"",
 	}
-	err = tmpl.Execute(tmpConfigFile, data)
-	tmpConfigFile.Close()
+	err = tmpl.Execute(configFile, data)
+	configFile.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Generate template for servers
+	configFile, err = os.Create(File.Config + ".tmpl")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tmpl, _ = template.ParseFiles(configTemplate)
+	data.HostName = "{{.HostName}}"
+	data.SubjectAltName = "{{.SubjectAltName}}"
+
+	err = tmpl.Execute(configFile, data)
+	configFile.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if err = os.Chmod(File.Config, 0600); err != nil {
+		log.Print(err)
+	}
+	if err = os.Chmod(File.Config+".tmpl", 0600); err != nil {
 		log.Print(err)
 	}
 

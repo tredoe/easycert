@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"text/template"
 )
 
 // BuildCA creates a certification authority.
@@ -48,8 +49,19 @@ func BuildCA() {
 
 // NewRequest creates a certificate request.
 func NewRequest() {
+	configFile := ""
+
+	if Host.String() != "" {
+		if err := serverConfig(); err != nil {
+			log.Fatal(err)
+		}
+		configFile = File.SrvConfig
+	} else {
+		configFile = File.Config
+	}
+
 	args := []string{"req", "-new", "-nodes",
-		"-config", File.Config, "-keyout", File.Key, "-out", File.Request,
+		"-config", configFile, "-keyout", File.Key, "-out", File.Request,
 		"-newkey", "rsa:" + RSASize.String(),
 	}
 	fmt.Printf("%s", openssl(args...))
@@ -63,8 +75,18 @@ func NewRequest() {
 
 // SignReq signs a certificate request generating a new certificate.
 func SignReq() {
+	configFile := ""
+	isForServer := false
+
+	if _, err := os.Stat(File.SrvConfig); os.IsNotExist(err) {
+		configFile = File.Config
+	} else {
+		isForServer = true
+		configFile = File.SrvConfig
+	}
+
 	args := []string{"ca", "-policy", "policy_anything",
-		"-config", File.Config, "-in", File.Request, "-out", File.Cert,
+		"-config", configFile, "-in", File.Request, "-out", File.Cert,
 		"-days", strconv.Itoa(365 * *Years),
 		//"-keyfile", File.Key,
 	}
@@ -73,13 +95,24 @@ func SignReq() {
 	if err := os.Remove(File.Request); err != nil {
 		log.Print(err)
 	}
-	fmt.Printf("\n* Remove certificate request: %q\n", File.Cert)
+	fmt.Printf("\n* Remove certificate request: %q\n", File.Request)
+	if isForServer {
+		if err := os.Remove(configFile); err != nil {
+			log.Print(err)
+		}
+	}
 
 	fmt.Printf("\n== Generated\n- Certificate:\t%q\n", File.Cert)
 }
 
 // == Checking
 //
+
+/*// CheckRequest checks the certificate request.
+func CheckRequest(file string) {
+	args := []string{"req", "check", "-noout", "-in", file}
+	fmt.Printf("%s", openssl(args...))
+}*/
 
 // CheckCert checks the certificate.
 func CheckCert(file string) {
@@ -98,6 +131,12 @@ func CheckKey(file string) {
 
 // == Information
 //
+
+// InfoRequest prints the certificate request in text.
+func InfoRequest(file string) string {
+	args := []string{"req", "-text", "-noout", "-in", file}
+	return string(openssl(args...))
+}
 
 // InfoCert prints the certificate in text.
 func InfoCert(file string) string {
@@ -143,8 +182,7 @@ func InfoName(file string) string {
 	return string(openssl(args...))
 }
 
-// == Run
-//
+// == * * *
 
 // openssl executes an OpenSSL command.
 func openssl(args ...string) []byte {
@@ -165,4 +203,39 @@ func openssl(args ...string) []byte {
 	}
 
 	return stdout.Bytes()
+}
+
+// serverConfig generates the configuration according for a server.
+func serverConfig() error {
+	hostname, err := os.Hostname()
+	if err != nil {
+		return fmt.Errorf("Could not get hostname: %s\n\n"+
+			"You may want to fix your '/etc/hosts' and/or DNS setup",
+			err)
+	}
+
+	tmpl, err := template.ParseFiles(File.Config + ".tmpl")
+	if err != nil {
+		return fmt.Errorf("Parsing error in configuration: %s", err)
+	}
+
+	configFile, err := os.Create(File.SrvConfig)
+	if err != nil {
+		return err
+	}
+
+	data := struct {
+		HostName       string
+		SubjectAltName string
+	}{
+		hostname,
+		"subjectAltName = " + Host.String(),
+	}
+	err = tmpl.Execute(configFile, data)
+	configFile.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
