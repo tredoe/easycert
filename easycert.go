@@ -226,7 +226,7 @@ of a file to look for in the certificates directory.
 	-setup [-ca -rsa-size -years]
 
 * Create certificate request:
-	-new-req [-rsa-size -years] [-sign] [-host] NAME
+	-new-req [-sign -rsa-size -years -host] NAME
 	-sign NAME
 
 * Create files for some language:
@@ -240,7 +240,7 @@ of a file to look for in the certificates directory.
 	-info -full | (-end-date -hash -issuer -name) NAME|FILENAME
 
 * ChecK:
-	-chk (-cert|-key) NAME|FILENAME
+	-chk (-req|-cert|-key) NAME|FILENAME
 
 The flags are:
 `)
@@ -417,8 +417,8 @@ func main() {
 	if *IsCheck {
 		if *IsCert {
 			CheckCert(filename)
-		//} else if *IsRequest {
-			//CheckRequest(filename)
+		} else if *IsRequest {
+			CheckRequest(filename)
 		} else if *IsKey {
 			CheckKey(filename)
 		} else {

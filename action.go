@@ -108,11 +108,11 @@ func SignReq() {
 // == Checking
 //
 
-/*// CheckRequest checks the certificate request.
+// CheckRequest checks the certificate request.
 func CheckRequest(file string) {
-	args := []string{"req", "check", "-noout", "-in", file}
+	args := []string{"req", "-verify", "-noout", "-in", file}
 	fmt.Printf("%s", openssl(args...))
-}*/
+}
 
 // CheckCert checks the certificate.
 func CheckCert(file string) {
