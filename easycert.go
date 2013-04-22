@@ -10,19 +10,18 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"go/build"
-	"io/ioutil"
+/*	"go/build"
+	"io/ioutil"*/
 	"log"
 	"net"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
-	"runtime"
-	"strconv"
+//	"runtime"
 	"strings"
-	"text/template"
-	"time"
+//	"text/template"
+//	"time"
 )
 
 const (
@@ -117,34 +116,7 @@ func init() {
 
 // == Flags
 
-var (
-	errMinSize = errors.New("key size must be at least of 2048")
-	errSize    = errors.New("key size must be multiple of 1024")
-	errHost    = errors.New("must be an IP or DNS")
-)
-
-// rsaSizeFlag represents the size in bits of RSA key to generate.
-type rsaSizeFlag int
-
-func (s *rsaSizeFlag) String() string {
-	return strconv.Itoa(int(*s))
-}
-
-func (s *rsaSizeFlag) Set(value string) error {
-	i, err := strconv.Atoi(value)
-	if err != nil {
-		return err
-	}
-
-	if i < 2048 {
-		return errMinSize
-	}
-	if i%1024 != 0 {
-		return errSize
-	}
-	*s = rsaSizeFlag(i)
-	return nil
-}
+var errHost    = errors.New("must be an IP or DNS")
 
 // hostFlag represents the hostname with IP addresses and/or domain names.
 type hostFlag struct {
@@ -177,15 +149,44 @@ func (h *hostFlag) Set(value string) error {
 	return nil
 }
 
+// TODO: remove
+func main() {
+	flag.Usage = usage
+	flag.Parse()
+	log.SetFlags(0)
+
+	args := flag.Args()
+	if len(args) < 1 {
+		usage()
+	}
+
+	if args[0] == "help" {
+		help(args[1:])
+		return
+	}
+
+	for _, cmd := range commands {
+		if cmd.Name() == args[0] && cmd.Run != nil {
+			cmd.Flag.Usage = func() { cmd.Usage() }
+			if cmd.CustomFlags {
+				args = args[1:]
+			} else {
+				cmd.Flag.Parse(args[1:])
+				args = cmd.Flag.Args()
+			}
+			cmd.Run(cmd, args)
+			return
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "easycert: unknown subcommand %q\nRun 'easycert help' for usage.\n", args[0])
+	os.Exit(2)
+}
+
+/*
 var (
 	Host    hostFlag
-	RSASize rsaSizeFlag = 2048 // default
 
-	Years = flag.Int("years", 1,
-		"number of years a certificate generated is valid;\n\twith flag `-ca`, the default is 10 years")
-
-	IsSetup      = flag.Bool("setup", false, "make the directory structure to handle the certificates")
-	IsCA         = flag.Bool("ca", false, "create the certification authority")
 	IsNewRequest = flag.Bool("new-req", false, "create certificate request")
 	IsSignReq    = flag.Bool("sign", false, "sign a certificate request")
 
@@ -223,7 +224,7 @@ NOTE: FILENAME is the path of a certificate file, while NAME is the name
 of a file to look for in the certificates directory.
 
 * Directory structure:
-	-setup [-ca -rsa-size -years]
+	-init [-ca -rsa-size -years]
 
 * Create certificate request:
 	-new-req [-sign -rsa-size -years -host] NAME
@@ -633,4 +634,4 @@ func printCert(cert []string) {
 		fmt.Print(filepath.Base(v))
 	}
 	fmt.Println()
-}
+}*/
