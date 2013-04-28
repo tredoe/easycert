@@ -25,8 +25,6 @@ the certificates are handled.
 `,
 }
 
-//var initCA = cmdInit.Flag.Bool("ca", false, "create certification authority")
-
 func runInit(cmd *Command, args []string) {
 	var err error
 

@@ -16,8 +16,7 @@ import (
 	"unicode/utf8"
 )
 
-// A Command is an implementation of a go command
-// like go build or go fix.
+// A Command is an implementation of a command.
 type Command struct {
 	// Run runs the command.
 	// The args are the arguments after the command name.
@@ -63,27 +62,95 @@ func (c *Command) Runnable() bool {
 	return c.Run != nil
 }
 
+// Commands represents a set of commands.
+type Commands []*Command
+
+func (c Commands) Parse(args []string) error {
+	if args[0] == "help" {
+		return c.help(args[1:])
+	}
+
+	for _, cmd := range c {
+		if cmd.Name() == args[0] && cmd.Run != nil {
+			cmd.Flag.Usage = func() { cmd.Usage() }
+			if cmd.CustomFlags {
+				args = args[1:]
+			} else {
+				cmd.Flag.Parse(args[1:])
+				args = cmd.Flag.Args()
+			}
+			cmd.Run(cmd, args)
+			return nil
+		}
+	}
+	return fmt.Errorf("Unknown subcommand %q.  Run `%s help` for usage.\n",
+		args[0], os.Args[0])
+}
+
+// help implements the 'help' command.
+func (c Commands) help(args []string) error {
+	if len(args) == 0 { // Succeeded at 'go help'.
+		c.printUsage(os.Stdout)
+		return nil
+	}
+	if len(args) != 1 { // Failed at 'go help'.
+		return fmt.Errorf("Usage: %s help command\n\nToo many arguments given.\n", os.Args[0])
+	}
+
+	arg := args[0]
+
+	// 'go help documentation' generates doc.go.
+	if arg == "documentation" {
+		buf := new(bytes.Buffer)
+		c.printUsage(buf)
+		usage := &Command{Long: buf.String()}
+		tmpl(os.Stdout, documentationTemplate, append([]*Command{usage}, c...))
+		return nil
+	}
+
+	for _, cmd := range c {
+		if cmd.Name() == arg { // Succeeded at 'go help cmd'.
+			tmpl(os.Stdout, helpTemplate, cmd)
+			return nil
+		}
+	}
+	// Failed at 'go help cmd'
+	return fmt.Errorf("Unknown help topic %q.  Run `%s help` for usage.\n", arg, os.Args[0])
+}
+
+func (c Commands) printUsage(w io.Writer) {
+	tmpl(w, usageTemplate, c)
+}
+
+func (c Commands) Usage() {
+	c.printUsage(os.Stderr)
+	os.Exit(2)
+}
+
+// == Templates
+//
+
 var usageTemplate = `Go is a tool for managing Go source code.
 
 Usage:
 
-        go command [arguments]
+        {{program}} command [arguments]
 
 The commands are:
 {{range .}}{{if .Runnable}}
     {{.Name | printf "%-11s"}} {{.Short}}{{end}}{{end}}
 
-Use "go help [command]" for more information about a command.
-
+Use "{{program}} help [command]" for more information about a command.
+{{if hasExtraTopic .}}
 Additional help topics:
 {{range .}}{{if not .Runnable}}
     {{.Name | printf "%-11s"}} {{.Short}}{{end}}{{end}}
 
-Use "go help [topic]" for more information about that topic.
-
+Use "{{program}} help [topic]" for more information about that topic.
+{{end}}
 `
 
-var helpTemplate = `{{if .Runnable}}usage: go {{.UsageLine}}
+var helpTemplate = `{{if .Runnable}}Usage: {{program}} {{.UsageLine}}
 
 {{end}}{{.Long | trim}}
 `
@@ -100,21 +167,24 @@ var documentationTemplate = `// Copyright 2011 The Go Authors.  All rights reser
 
 {{end}}{{if .Runnable}}Usage:
 
-        go {{.UsageLine}}
+        {{program}} {{.UsageLine}}
 
 {{end}}{{.Long | trim}}
 
 
 {{end}}*/
 package main
-
-// NOTE: cmdDoc is in fmt.go.
 `
 
 // tmpl executes the given template text on data, writing the result to w.
 func tmpl(w io.Writer, text string, data interface{}) {
 	t := template.New("top")
-	t.Funcs(template.FuncMap{"trim": strings.TrimSpace, "capitalize": capitalize})
+	t.Funcs(template.FuncMap{
+		"capitalize":    capitalize,
+		"hasExtraTopic": hasExtraTopic,
+		"program":       program,
+		"trim":          strings.TrimSpace,
+	})
 	template.Must(t.Parse(text))
 	if err := t.Execute(w, data); err != nil {
 		panic(err)
@@ -129,46 +199,15 @@ func capitalize(s string) string {
 	return string(unicode.ToTitle(r)) + s[n:]
 }
 
-func printUsage(w io.Writer) {
-	tmpl(w, usageTemplate, commands)
-}
-
-// help implements the 'help' command.
-func help(args []string) {
-	if len(args) == 0 {
-		printUsage(os.Stdout)
-		// not exit 2: succeeded at 'go help'.
-		return
-	}
-	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "usage: go help command\n\nToo many arguments given.\n")
-		os.Exit(2) // failed at 'go help'
-	}
-
-	arg := args[0]
-
-	// 'go help documentation' generates doc.go.
-	if arg == "documentation" {
-		buf := new(bytes.Buffer)
-		printUsage(buf)
-		usage := &Command{Long: buf.String()}
-		tmpl(os.Stdout, documentationTemplate, append([]*Command{usage}, commands...))
-		return
-	}
-
-	for _, cmd := range commands {
-		if cmd.Name() == arg {
-			tmpl(os.Stdout, helpTemplate, cmd)
-			// not exit 2: succeeded at 'go help cmd'.
-			return
+func hasExtraTopic(cmds []*Command) bool {
+	for _, v := range cmds {
+		if !v.Runnable() {
+			return true
 		}
 	}
-
-	fmt.Fprintf(os.Stderr, "Unknown help topic %#q.  Run 'go help'.\n", arg)
-	os.Exit(2) // failed at 'go help cmd'
+	return false
 }
 
-func usage() {
-	printUsage(os.Stderr)
-	os.Exit(2)
+func program() string {
+	return os.Args[0]
 }

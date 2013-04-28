@@ -7,7 +7,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -15,30 +14,17 @@ import (
 )
 
 var cmdCA = &Command{
+	Run:       runCA,
 	UsageLine: "ca [-rsa-size bits] [-years number]",
 	Short:     "create certification authority",
 	Long: `
-"ca" creates a certification authority (CA) and makes directories and files
+"ca" creates a certification authority (CA) and makes the directories and files
 to handle the certificates signed by this CA.
 `,
 }
 
 func init() {
-	// Break init loop
-	cmdCA.Run = runCA
-
-	addCAFlags(cmdCA)
-}
-
-// addCAFlags adds the common flags to the "ca" command.
-func addCAFlags(cmd *Command) {
-	caRSASize := flag.Lookup("rsa-size")
-	caYears := flag.Lookup("years")
-
-	valueYears, _ := strconv.Atoi(caYears.Value.String())
-
-	cmd.Flag.Var(&RSASize, caRSASize.Name, caRSASize.Usage)
-	cmd.Flag.IntVar(Years, caYears.Name, valueYears, caYears.Usage)
+	flagsForNewCert(cmdCA)
 }
 
 func runCA(cmd *Command, args []string) {

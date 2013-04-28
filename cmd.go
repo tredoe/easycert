@@ -7,13 +7,8 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"flag"
-	"fmt"
-	"log"
-	"os"
-	"os/exec"
 	"strconv"
 )
 
@@ -50,37 +45,44 @@ var (
 	RSASize rsaSizeFlag = 2048 // default
 
 	Years = flag.Int("years", 1,
-		"number of years a certificate generated is valid;\n\twith `-ca` flag, the default is 10 years")
+		"number of years a certificate generated is valid;\n\twith `ca` sub-command, the default is 10 years")
+
+	IsRequest = flag.Bool("req", false, "request")
+	IsCert    = flag.Bool("cert", false, "certificate")
+	IsKey     = flag.Bool("key", false, "private key")
 )
 
 func init() {
 	flag.Var(&RSASize, "rsa-size", "size in bits for the RSA key")
 }
 
-var commands = []*Command{
-	cmdInit,
-	cmdCA,
-}
-
 // * * *
 
-// openssl executes an OpenSSL command.
-func openssl(args ...string) []byte {
-	var stdout bytes.Buffer
+// flagsForNewCert adds the common flags to the "ca" and "req" commands.
+func flagsForNewCert(cmd *Command) {
+	rsaSizeFlag := flag.Lookup("rsa-size")
+	yearsFlag := flag.Lookup("years")
 
-	cmd := exec.Command(File.Cmd, args...)
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = &stdout
-
-	err := cmd.Start()
-	if err != nil {
-		log.Fatal(err)
+	if cmd.Name() == "ca" && yearsFlag.DefValue == yearsFlag.Value.String() {
+		*Years = 10
 	}
-	if err = cmd.Wait(); err != nil {
-		fmt.Fprintf(os.Stderr, "\n%s\n", err)
-		os.Exit(1)
-	}
+	yearsValue, _ := strconv.Atoi(yearsFlag.Value.String())
 
-	return stdout.Bytes()
+	cmd.Flag.Var(&RSASize, rsaSizeFlag.Name, rsaSizeFlag.Usage)
+	cmd.Flag.IntVar(Years, yearsFlag.Name, yearsValue, yearsFlag.Usage)
+}
+
+// flagsForFileType adds the common flags to the "cat", "chk", and "ls" commands.
+func flagsForFileType(cmd *Command) {
+	request := flag.Lookup("req")
+	cert := flag.Lookup("cert")
+	key := flag.Lookup("key")
+
+	requestValue, _ := strconv.ParseBool(request.Value.String())
+	certValue, _ := strconv.ParseBool(cert.Value.String())
+	keyValue, _ := strconv.ParseBool(key.Value.String())
+
+	cmd.Flag.BoolVar(IsRequest, request.Name, requestValue, request.Usage)
+	cmd.Flag.BoolVar(IsCert, cert.Name, certValue, cert.Usage)
+	cmd.Flag.BoolVar(IsKey, key.Name, keyValue, key.Usage)
 }
