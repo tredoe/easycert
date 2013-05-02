@@ -44,8 +44,7 @@ func (s *rsaSizeFlag) Set(value string) error {
 var (
 	RSASize rsaSizeFlag = 2048 // default
 
-	Years = flag.Int("years", 1,
-		"number of years a certificate generated is valid;\n\twith `ca` sub-command, the default is 10 years")
+	Years = flag.Int("years", 1, "number of years a certificate generated is valid")
 
 	IsRequest = flag.Bool("req", false, "request")
 	IsCert    = flag.Bool("cert", false, "certificate")
@@ -61,28 +60,24 @@ func init() {
 // flagsForNewCert adds the common flags to the "ca" and "req" commands.
 func flagsForNewCert(cmd *Command) {
 	rsaSizeFlag := flag.Lookup("rsa-size")
-	yearsFlag := flag.Lookup("years")
-
-	if cmd.Name() == "ca" && yearsFlag.DefValue == yearsFlag.Value.String() {
-		*Years = 10
-	}
-	yearsValue, _ := strconv.Atoi(yearsFlag.Value.String())
-
 	cmd.Flag.Var(&RSASize, rsaSizeFlag.Name, rsaSizeFlag.Usage)
+
+	yearsFlag := flag.Lookup("years")
+	yearsValue, _ := strconv.Atoi(yearsFlag.Value.String())
 	cmd.Flag.IntVar(Years, yearsFlag.Name, yearsValue, yearsFlag.Usage)
 }
 
 // flagsForFileType adds the common flags to the "cat", "chk", and "ls" commands.
 func flagsForFileType(cmd *Command) {
 	request := flag.Lookup("req")
-	cert := flag.Lookup("cert")
-	key := flag.Lookup("key")
-
 	requestValue, _ := strconv.ParseBool(request.Value.String())
-	certValue, _ := strconv.ParseBool(cert.Value.String())
-	keyValue, _ := strconv.ParseBool(key.Value.String())
-
 	cmd.Flag.BoolVar(IsRequest, request.Name, requestValue, request.Usage)
+
+	cert := flag.Lookup("cert")
+	certValue, _ := strconv.ParseBool(cert.Value.String())
 	cmd.Flag.BoolVar(IsCert, cert.Name, certValue, cert.Usage)
+
+	key := flag.Lookup("key")
+	keyValue, _ := strconv.ParseBool(key.Value.String())
 	cmd.Flag.BoolVar(IsKey, key.Name, keyValue, key.Usage)
 }

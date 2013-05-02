@@ -42,12 +42,11 @@ var (
 
 func init() {
 	client := flag.Lookup("client")
-	go_ := flag.Lookup("go")
-
 	clientVal, _ := strconv.ParseBool(client.Value.String())
-	goVal, _ := strconv.ParseBool(go_.Value.String())
-
 	cmdLang.Flag.BoolVar(IsClient, client.Name, clientVal, client.Usage)
+
+	go_ := flag.Lookup("go")
+	goVal, _ := strconv.ParseBool(go_.Value.String())
 	cmdLang.Flag.BoolVar(IsGo, go_.Name, goVal, go_.Usage)
 }
 

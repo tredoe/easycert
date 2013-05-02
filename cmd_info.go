@@ -35,18 +35,19 @@ var (
 
 func init() {
 	endDate := flag.Lookup("end-date")
-	hash := flag.Lookup("hash")
-	issuer := flag.Lookup("issuer")
-	name := flag.Lookup("name")
-
 	endDateVal, _ := strconv.ParseBool(endDate.Value.String())
-	hashVal, _ := strconv.ParseBool(hash.Value.String())
-	issuerVal, _ := strconv.ParseBool(issuer.Value.String())
-	nameVal, _ := strconv.ParseBool(name.Value.String())
-
 	cmdInfo.Flag.BoolVar(IsEndDate, endDate.Name, endDateVal, endDate.Usage)
+
+	hash := flag.Lookup("hash")
+	hashVal, _ := strconv.ParseBool(hash.Value.String())
 	cmdInfo.Flag.BoolVar(IsHash, hash.Name, hashVal, hash.Usage)
+
+	issuer := flag.Lookup("issuer")
+	issuerVal, _ := strconv.ParseBool(issuer.Value.String())
 	cmdInfo.Flag.BoolVar(IsIssuer, issuer.Name, issuerVal, issuer.Usage)
+
+	name := flag.Lookup("name")
+	nameVal, _ := strconv.ParseBool(name.Value.String())
 	cmdInfo.Flag.BoolVar(IsName, name.Name, nameVal, name.Usage)
 }
 
