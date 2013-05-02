@@ -109,7 +109,7 @@ func init() {
 }
 
 func main() {
-	commands := Commands{
+	commands := NewCommands("EasyCert is a tool to generate and handle certificates.",
 		cmdInit,
 		cmdCA,
 		cmdReq,
@@ -120,7 +120,7 @@ func main() {
 		cmdInfo,
 		cmdCat,
 		cmdChk,
-	}
+	)
 
 	flag.Usage = commands.Usage
 	flag.Parse()

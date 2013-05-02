@@ -20,10 +20,10 @@ import (
 
 var cmdReq = &Command{
 	Run:       runReq,
-	UsageLine: "req [-sign] [-rsa-size bits] [-years number] [-host name1,name2,...] NAME",
-	Short:     "create certificate request",
+	UsageLine: "req [-sign] [-rsa-size bits] [-years number] [-host name1,...] NAME",
+	Short:     "create X509 certificate request",
 	Long: `
-"req" creates a certificate signing request (CSR) to be signed by a CA.
+"req" creates a X509 certificate signing request (CSR) to be signed by a CA.
 `,
 }
 
@@ -77,6 +77,10 @@ func init() {
 }
 
 func runReq(cmd *Command, args []string) {
+	if len(args) != 1 {
+		log.Fatalf("Missing required argument: NAME\n\n  %s", cmd.UsageLine)
+	}
+
 	if _, err := os.Stat(File.Request); !os.IsNotExist(err) {
 		log.Fatalf("Certificate request already exists: %q", File.Request)
 	}

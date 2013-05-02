@@ -26,10 +26,10 @@ type Command struct {
 	// The first word in the line is taken to be the command name.
 	UsageLine string
 
-	// Short is the short description shown in the 'go help' output.
+	// Short is the short description shown in the '<program> help' output.
 	Short string
 
-	// Long is the long message shown in the 'go help <this-command>' output.
+	// Long is the long message shown in the '<program> help <this-command>' output.
 	Long string
 
 	// Flag is a set of flags specific to this command.
@@ -51,8 +51,7 @@ func (c *Command) Name() string {
 }
 
 func (c *Command) Usage() {
-	fmt.Fprintf(os.Stderr, "usage: %s\n\n", c.UsageLine)
-	fmt.Fprintf(os.Stderr, "%s\n", strings.TrimSpace(c.Long))
+	fmt.Fprintf(os.Stderr, "Usage: %s %s\n\n", os.Args[0], c.UsageLine)
 	os.Exit(2)
 }
 
@@ -63,14 +62,21 @@ func (c *Command) Runnable() bool {
 }
 
 // Commands represents a set of commands.
-type Commands []*Command
+type Commands struct {
+	Description string // The program's description shown in the '<program> help' output.
+	Commands    []*Command
+}
+
+func NewCommands(description string, cmds ...*Command) Commands {
+	return Commands{description, cmds}
+}
 
 func (c Commands) Parse(args []string) error {
 	if args[0] == "help" {
 		return c.help(args[1:])
 	}
 
-	for _, cmd := range c {
+	for _, cmd := range c.Commands {
 		if cmd.Name() == args[0] && cmd.Run != nil {
 			cmd.Flag.Usage = func() { cmd.Usage() }
 			if cmd.CustomFlags {
@@ -89,32 +95,32 @@ func (c Commands) Parse(args []string) error {
 
 // help implements the 'help' command.
 func (c Commands) help(args []string) error {
-	if len(args) == 0 { // Succeeded at 'go help'.
+	if len(args) == 0 { // Succeeded at '<program> help'.
 		c.printUsage(os.Stdout)
 		return nil
 	}
-	if len(args) != 1 { // Failed at 'go help'.
+	if len(args) != 1 { // Failed at '<program> help'.
 		return fmt.Errorf("Usage: %s help command\n\nToo many arguments given.\n", os.Args[0])
 	}
 
 	arg := args[0]
 
-	// 'go help documentation' generates doc.go.
+	// '<program> help documentation' generates doc.go.
 	if arg == "documentation" {
 		buf := new(bytes.Buffer)
 		c.printUsage(buf)
 		usage := &Command{Long: buf.String()}
-		tmpl(os.Stdout, documentationTemplate, append([]*Command{usage}, c...))
+		tmpl(os.Stdout, documentationTemplate, append([]*Command{usage}, c.Commands...))
 		return nil
 	}
 
-	for _, cmd := range c {
-		if cmd.Name() == arg { // Succeeded at 'go help cmd'.
+	for _, cmd := range c.Commands {
+		if cmd.Name() == arg { // Succeeded at '<program> help <cmd>'.
 			tmpl(os.Stdout, helpTemplate, cmd)
 			return nil
 		}
 	}
-	// Failed at 'go help cmd'
+	// Failed at '<program> help <cmd>'
 	return fmt.Errorf("Unknown help topic %q.  Run `%s help` for usage.\n", arg, os.Args[0])
 }
 
@@ -130,20 +136,20 @@ func (c Commands) Usage() {
 // == Templates
 //
 
-var usageTemplate = `Go is a tool for managing Go source code.
+var usageTemplate = `{{.Description}}
 
 Usage:
 
         {{program}} command [arguments]
 
 The commands are:
-{{range .}}{{if .Runnable}}
+{{range .Commands}}{{if .Runnable}}
     {{.Name | printf "%-11s"}} {{.Short}}{{end}}{{end}}
 
 Use "{{program}} help [command]" for more information about a command.
-{{if hasExtraTopic .}}
+{{if hasExtraTopic .Commands}}
 Additional help topics:
-{{range .}}{{if not .Runnable}}
+{{range .Commands}}{{if not .Runnable}}
     {{.Name | printf "%-11s"}} {{.Short}}{{end}}{{end}}
 
 Use "{{program}} help [topic]" for more information about that topic.
@@ -153,6 +159,9 @@ Use "{{program}} help [topic]" for more information about that topic.
 var helpTemplate = `{{if .Runnable}}Usage: {{program}} {{.UsageLine}}
 
 {{end}}{{.Long | trim}}
+{{if hasFlags .Flag}}
+The flags are:
+{{printDefaults .Flag}}{{end}}
 `
 
 var documentationTemplate = `// Copyright 2011 The Go Authors.  All rights reserved.
@@ -182,8 +191,15 @@ func tmpl(w io.Writer, text string, data interface{}) {
 	t.Funcs(template.FuncMap{
 		"capitalize":    capitalize,
 		"hasExtraTopic": hasExtraTopic,
-		"program":       program,
+		"hasFlags":      hasFlags,
 		"trim":          strings.TrimSpace,
+
+		"program": func() string { return os.Args[0] },
+		"printDefaults": func(f flag.FlagSet) string {
+			f.SetOutput(w)
+			f.PrintDefaults()
+			return ""
+		},
 	})
 	template.Must(t.Parse(text))
 	if err := t.Execute(w, data); err != nil {
@@ -208,6 +224,32 @@ func hasExtraTopic(cmds []*Command) bool {
 	return false
 }
 
-func program() string {
-	return os.Args[0]
+func hasFlags(f flag.FlagSet) bool {
+	nFlags := 0
+
+	f.VisitAll(func(*flag.Flag) {
+		nFlags++
+	})
+	if nFlags != 0 {
+		return true
+	}
+	return false
 }
+
+// == Values (from http://code.google.com/p/go/source/browse/src/pkg/flag/flag.go)
+//
+
+// -- string Value
+type StringValue string
+
+func newStringValue(val string, p *string) *StringValue {
+	*p = val
+	return (*StringValue)(p)
+}
+
+func (s *StringValue) Set(val string) error {
+	*s = StringValue(val)
+	return nil
+}
+
+func (s *StringValue) String() string { return fmt.Sprintf("%s", *s) }
