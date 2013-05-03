@@ -171,18 +171,17 @@ func openssl(args ...string) []byte {
 	var stdout bytes.Buffer
 
 	cmd := exec.Command(File.Cmd, args...)
-	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = &stdout
+	cmd.Stderr = os.Stderr
 
 	err := cmd.Start()
 	if err != nil {
 		log.Fatal(err)
 	}
 	if err = cmd.Wait(); err != nil {
-		fmt.Fprintf(os.Stderr, "\n%s\n", err)
-		os.Exit(1)
+		fmt.Fprintln(os.Stderr)
+		log.Fatal(err)
 	}
-
 	return stdout.Bytes()
 }
