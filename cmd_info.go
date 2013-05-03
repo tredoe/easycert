@@ -34,21 +34,21 @@ var (
 )
 
 func init() {
-	endDate := flag.Lookup("end-date")
-	endDateVal, _ := strconv.ParseBool(endDate.Value.String())
-	cmdInfo.Flag.BoolVar(IsEndDate, endDate.Name, endDateVal, endDate.Usage)
+	_IsEndDate := flag.Lookup("end-date")
+	_IsEndDate_Value, _ := strconv.ParseBool(_IsEndDate.Value.String())
+	cmdInfo.Flag.BoolVar(IsEndDate, _IsEndDate.Name, _IsEndDate_Value, _IsEndDate.Usage)
 
-	hash := flag.Lookup("hash")
-	hashVal, _ := strconv.ParseBool(hash.Value.String())
-	cmdInfo.Flag.BoolVar(IsHash, hash.Name, hashVal, hash.Usage)
+	_IsHash := flag.Lookup("hash")
+	_IsHash_Value, _ := strconv.ParseBool(_IsHash.Value.String())
+	cmdInfo.Flag.BoolVar(IsHash, _IsHash.Name, _IsHash_Value, _IsHash.Usage)
 
-	issuer := flag.Lookup("issuer")
-	issuerVal, _ := strconv.ParseBool(issuer.Value.String())
-	cmdInfo.Flag.BoolVar(IsIssuer, issuer.Name, issuerVal, issuer.Usage)
+	_IsIssuer := flag.Lookup("issuer")
+	_IsIssuer_Value, _ := strconv.ParseBool(_IsIssuer.Value.String())
+	cmdInfo.Flag.BoolVar(IsIssuer, _IsIssuer.Name, _IsIssuer_Value, _IsIssuer.Usage)
 
-	name := flag.Lookup("name")
-	nameVal, _ := strconv.ParseBool(name.Value.String())
-	cmdInfo.Flag.BoolVar(IsName, name.Name, nameVal, name.Usage)
+	_IsName := flag.Lookup("name")
+	_IsName_Value, _ := strconv.ParseBool(_IsName.Value.String())
+	cmdInfo.Flag.BoolVar(IsName, _IsName.Name, _IsName_Value, _IsName.Usage)
 }
 
 func runInfo(cmd *Command, args []string) {
@@ -57,10 +57,8 @@ func runInfo(cmd *Command, args []string) {
 		cmd.Usage()
 	}
 
-	file, err := getFilePath(cmd, args)
-	if err != nil {
-		log.Fatal(err)
-	}
+	*IsCert = true
+	file := getAbsPaths(false, args)
 	run := false
 
 	if *IsEndDate {

@@ -12,7 +12,7 @@ Wrap over OpenSSL to create and handle certificates.
 
 In the first, there is to create the directory structure:
 
-	easycert -new
+	easycert init
 
 which creates the directory '.cert' in your HOME directory.
 

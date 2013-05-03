@@ -23,7 +23,7 @@ import (
 
 var cmdLang = &Command{
 	Run:       runLang,
-	UsageLine: "lang [-go] -ca-cert file [-server-cert name] [-client]",
+	UsageLine: "lang [-ca-cert file] [-server-cert name] [-client] [-go]",
 	Short:     "generate files into a language to handle the certificate",
 	Long: `
 "lang" generate files into a language to handle the certificate.
@@ -41,13 +41,19 @@ var (
 )
 
 func init() {
-	client := flag.Lookup("client")
-	clientVal, _ := strconv.ParseBool(client.Value.String())
-	cmdLang.Flag.BoolVar(IsClient, client.Name, clientVal, client.Usage)
+	_CACert := flag.Lookup("ca-cert")
+	cmdLang.Flag.StringVar(CACert, _CACert.Name, _CACert.Value.String(), _CACert.Usage)
 
-	go_ := flag.Lookup("go")
-	goVal, _ := strconv.ParseBool(go_.Value.String())
-	cmdLang.Flag.BoolVar(IsGo, go_.Name, goVal, go_.Usage)
+	_ServerCert := flag.Lookup("server-cert")
+	cmdLang.Flag.StringVar(ServerCert, _ServerCert.Name, _ServerCert.Value.String(), _ServerCert.Usage)
+
+	_IsClient := flag.Lookup("client")
+	_IsClient_Value, _ := strconv.ParseBool(_IsClient.Value.String())
+	cmdLang.Flag.BoolVar(IsClient, _IsClient.Name, _IsClient_Value, _IsClient.Usage)
+
+	_IsGo := flag.Lookup("go")
+	_IsGo_Value, _ := strconv.ParseBool(_IsGo.Value.String())
+	cmdLang.Flag.BoolVar(IsGo, _IsGo.Name, _IsGo_Value, _IsGo.Usage)
 }
 
 func runLang(cmd *Command, args []string) {

@@ -59,25 +59,25 @@ func init() {
 
 // flagsForNewCert adds the common flags to the "ca" and "req" commands.
 func flagsForNewCert(cmd *Command) {
-	rsaSizeFlag := flag.Lookup("rsa-size")
-	cmd.Flag.Var(&RSASize, rsaSizeFlag.Name, rsaSizeFlag.Usage)
+	_RSASize := flag.Lookup("rsa-size")
+	cmd.Flag.Var(&RSASize, _RSASize.Name, _RSASize.Usage)
 
-	yearsFlag := flag.Lookup("years")
-	yearsValue, _ := strconv.Atoi(yearsFlag.Value.String())
-	cmd.Flag.IntVar(Years, yearsFlag.Name, yearsValue, yearsFlag.Usage)
+	_Years := flag.Lookup("years")
+	_Years_Value, _ := strconv.Atoi(_Years.Value.String())
+	cmd.Flag.IntVar(Years, _Years.Name, _Years_Value, _Years.Usage)
 }
 
 // flagsForFileType adds the common flags to the "cat", "chk", and "ls" commands.
 func flagsForFileType(cmd *Command) {
-	request := flag.Lookup("req")
-	requestValue, _ := strconv.ParseBool(request.Value.String())
-	cmd.Flag.BoolVar(IsRequest, request.Name, requestValue, request.Usage)
+	_IsRequest := flag.Lookup("req")
+	_IsRequest_Value, _ := strconv.ParseBool(_IsRequest.Value.String())
+	cmd.Flag.BoolVar(IsRequest, _IsRequest.Name, _IsRequest_Value, _IsRequest.Usage)
 
-	cert := flag.Lookup("cert")
-	certValue, _ := strconv.ParseBool(cert.Value.String())
-	cmd.Flag.BoolVar(IsCert, cert.Name, certValue, cert.Usage)
+	_IsCert := flag.Lookup("cert")
+	_IsCert_Value, _ := strconv.ParseBool(_IsCert.Value.String())
+	cmd.Flag.BoolVar(IsCert, _IsCert.Name, _IsCert_Value, _IsCert.Usage)
 
-	key := flag.Lookup("key")
-	keyValue, _ := strconv.ParseBool(key.Value.String())
-	cmd.Flag.BoolVar(IsKey, key.Name, keyValue, key.Usage)
+	_IsKey := flag.Lookup("key")
+	_IsKey_Value, _ := strconv.ParseBool(_IsKey.Value.String())
+	cmd.Flag.BoolVar(IsKey, _IsKey.Name, _IsKey_Value, _IsKey.Usage)
 }

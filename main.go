@@ -4,13 +4,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+// Command easycert does all
 package main
 
 import (
 	"bytes"
 	"flag"
 	"fmt"
-	//"go/build"
 	"log"
 	"os"
 	"os/exec"
@@ -127,7 +127,8 @@ func main() {
 
 	args := flag.Args()
 	if len(args) < 1 {
-		commands.Usage()
+		fmt.Fprintln(os.Stderr, commands.Description)
+		os.Exit(2)
 	}
 
 	if err := commands.Parse(args); err != nil {
@@ -136,87 +137,33 @@ func main() {
 	}
 }
 
-/*
-func usage() {
-	fmt.Fprintf(os.Stderr, `Usage: easycert FLAG... [NAME|FILENAME]
-
-The flags are:
-`)
-
-	flag.PrintDefaults()
-	//os.Exit(2)
-}
-
-func main() {
-	flag.Usage = usage
-	flag.Parse()
-
-	if flag.NFlag() == 0 {
-		fmt.Fprintf(os.Stderr, "Generate and handle certificates\n")
-		os.Exit(2)
-	}
-}
-*/
-
-// getFilePath returns the absolute paths of files got in the arguments,
-// according to the command.
-func getFilePath(cmd *Command, args []string) ([]string, error) {
-	cmdName := cmd.Name()
+// getAbsPaths returns the absolute paths of files got in the arguments.
+func getAbsPaths(isCmdInfo bool, args []string) []string {
 	newArgs := make([]string, len(args))
 
 	for i, v := range args {
-		switch cmdName {
-		case "cat", "chk", "info":
-			if v[0] != '.' && v[0] != os.PathSeparator {
-				if *IsCert || cmdName == "info" {
-					newArgs[i] = filepath.Join(Dir.Cert, v+EXT_CERT)
-				} else if *IsRequest {
-					newArgs[i] = filepath.Join(Dir.Root, v+EXT_REQUEST)
-				} else if *IsKey {
-					newArgs[i] = filepath.Join(Dir.Key, v+EXT_KEY)
-				}
-			}
-		}
-	}
-
-	for _, v := range newArgs {
-		if _, err := os.Stat(v); os.IsNotExist(err) {
-			return nil, fmt.Errorf("File does not exists: %q", v)
-		}
-	}
-	return newArgs, nil
-
-	/*case *IsNewRequest, *IsSignReq, *IsCA:
-		if *IsCA {
-			filename = NAME_CA
-		} else {
-			if flag.NArg() == 0 {
-				log.Fatal("Missing required argument")
-			}
-			filename = flag.Args()[0]
-			File.SrvConfig = filepath.Join(Dir.Root, filename+".cfg")
-		}
-		File.Cert = filepath.Join(Dir.Cert, filename+EXT_CERT)
-		File.Key = filepath.Join(Dir.Key, filename+EXT_KEY)
-		File.Request = filepath.Join(Dir.Root, filename+EXT_REQUEST)
-
-	case *IsCat, *IsInfo, *IsCheck:
-		if flag.NArg() == 0 {
-			log.Fatal("Missing required argument")
-		}
-		filename = flag.Args()[0]
-
-		if filename[0] != '.' && filename[0] != os.PathSeparator {
-			if *IsCert || *IsInfo {
-				filename = filepath.Join(Dir.Cert, filename+EXT_CERT)
+		if v[0] != '.' && v[0] != os.PathSeparator {
+			if *IsCert /*|| isCmdInfo*/ {
+				newArgs[i] = filepath.Join(Dir.Cert, v+EXT_CERT)
 			} else if *IsRequest {
-				filename = filepath.Join(Dir.Root, filename+EXT_REQUEST)
+				newArgs[i] = filepath.Join(Dir.Root, v+EXT_REQUEST)
 			} else if *IsKey {
-				filename = filepath.Join(Dir.Key, filename+EXT_KEY)
+				newArgs[i] = filepath.Join(Dir.Key, v+EXT_KEY)
 			}
-		}*/
+		}
+	}
+	return newArgs
+}
 
-	//return filename
+// setCertPath sets the absolute paths of files related to certificates with
+// given `name`.
+func setCertPath(name string) {
+	if name != NAME_CA {
+		File.SrvConfig = filepath.Join(Dir.Root, name+".cfg")
+	}
+	File.Cert = filepath.Join(Dir.Cert, name+EXT_CERT)
+	File.Key = filepath.Join(Dir.Key, name+EXT_KEY)
+	File.Request = filepath.Join(Dir.Root, name+EXT_REQUEST)
 }
 
 // openssl executes an OpenSSL command.

@@ -33,10 +33,7 @@ func runChk(cmd *Command, args []string) {
 		cmd.Usage()
 	}
 
-	file, err := getFilePath(cmd, args)
-	if err != nil {
-		log.Fatal(err)
-	}
+	file := getAbsPaths(false, args)
 
 	if *IsCert {
 		CheckCert(file[0])
@@ -44,6 +41,9 @@ func runChk(cmd *Command, args []string) {
 		CheckRequest(file[0])
 	} else if *IsKey {
 		CheckKey(file[0])
+	} else {
+		log.Print("Missing required flag")
+		cmd.Usage()
 	}
 }
 

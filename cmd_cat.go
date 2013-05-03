@@ -32,10 +32,7 @@ func runCat(cmd *Command, args []string) {
 		cmd.Usage()
 	}
 
-	file, err := getFilePath(cmd, args)
-	if err != nil {
-		log.Fatal(err)
-	}
+	file := getAbsPaths(false, args)
 
 	if *IsCert {
 		fmt.Print(InfoCert(file[0]))
@@ -43,6 +40,9 @@ func runCat(cmd *Command, args []string) {
 		fmt.Print(InfoRequest(file[0]))
 	} else if *IsKey {
 		fmt.Print(InfoKey(file[0]))
+	} else {
+		log.Print("Missing required flag")
+		cmd.Usage()
 	}
 }
 

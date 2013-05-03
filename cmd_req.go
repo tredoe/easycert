@@ -63,23 +63,27 @@ func (h *hostFlag) Set(value string) error {
 var (
 	Host hostFlag
 
-	IsSignReq = flag.Bool("sign", false, "sign a certificate request")
+	IsSign = flag.Bool("sign", false, "sign a certificate request")
 )
 
 func init() {
 	flagsForNewCert(cmdReq)
 
-	flag.Var(&Host, "host", "comma-separated hostnames and IPs to generate a certificate for a server")
+	flag.Var(&Host, "host", "comma-separated hostnames and IPs to generate a server certificate")
 
-	sign := flag.Lookup("sign")
-	signValue, _ := strconv.ParseBool(sign.Value.String())
-	cmdReq.Flag.BoolVar(IsSignReq, sign.Name, signValue, sign.Usage)
+	_Host := flag.Lookup("host")
+	cmdReq.Flag.Var(&Host, _Host.Name, _Host.Usage)
+
+	_IsSign := flag.Lookup("sign")
+	_IsSign_Value, _ := strconv.ParseBool(_IsSign.Value.String())
+	cmdReq.Flag.BoolVar(IsSign, _IsSign.Name, _IsSign_Value, _IsSign.Usage)
 }
 
 func runReq(cmd *Command, args []string) {
 	if len(args) != 1 {
 		log.Fatalf("Missing required argument: NAME\n\n  %s", cmd.UsageLine)
 	}
+	setCertPath(args[0])
 
 	if _, err := os.Stat(File.Request); !os.IsNotExist(err) {
 		log.Fatalf("Certificate request already exists: %q", File.Request)
@@ -107,6 +111,10 @@ func runReq(cmd *Command, args []string) {
 	}
 
 	fmt.Printf("\n== Generated\n- Request:\t%q\n- Private key:\t%q\n", File.Request, File.Key)
+
+	if *IsSign {
+		SignReq()
+	}
 }
 
 // serverConfig generates the configuration according for a server.

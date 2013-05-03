@@ -7,6 +7,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -23,11 +24,19 @@ certificates directory and generates a certificate.
 `,
 }
 
+func init() {
+	_Years := flag.Lookup("years")
+	_Years_Value, _ := strconv.Atoi(_Years.Value.String())
+	cmdSign.Flag.IntVar(Years, _Years.Name, _Years_Value, _Years.Usage)
+}
+
 func runSign(cmd *Command, args []string) {
 	if len(args) != 1 {
 		log.Print("Missing required argument: NAME")
 		cmd.Usage()
 	}
+	setCertPath(args[0])
+
 	SignReq()
 }
 
@@ -47,6 +56,8 @@ func SignReq() {
 		configFile = File.SrvConfig
 	}
 
+	fmt.Print("\n== Sign\n\n")
+
 	opensslArgs := []string{"ca", "-policy", "policy_anything",
 		"-config", configFile, "-in", File.Request, "-out", File.Cert,
 		"-days", strconv.Itoa(365 * *Years),
@@ -58,7 +69,6 @@ func SignReq() {
 		log.Print(err)
 	}
 
-	fmt.Print("\n== Sign\n\n")
 	fmt.Printf("\n* Remove certificate request: %q\n", File.Request)
 	if isForServer {
 		if err := os.Remove(configFile); err != nil {

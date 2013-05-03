@@ -28,6 +28,8 @@ func init() {
 }
 
 func runCA(cmd *Command, args []string) {
+	setCertPath(NAME_CA)
+
 	_, err := os.Stat(File.Cert)
 	if !os.IsNotExist(err) {
 		log.Fatal("The certification authority's certificate exists")
