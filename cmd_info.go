@@ -11,9 +11,11 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+
+	"github.com/kless/gotool/flagutil"
 )
 
-var cmdInfo = &Command{
+var cmdInfo = &flagutil.Command{
 	Run:       runInfo,
 	UsageLine: "info [-end-date] [-hash] [-issuer] [-name] FILE",
 	Short:     "information",
@@ -51,7 +53,7 @@ func init() {
 	cmdInfo.Flag.BoolVar(IsName, _IsName.Name, _IsName_Value, _IsName.Usage)
 }
 
-func runInfo(cmd *Command, args []string) {
+func runInfo(cmd *flagutil.Command, args []string) {
 	if len(args) != 1 {
 		log.Print("Missing required argument: FILE")
 		cmd.Usage()

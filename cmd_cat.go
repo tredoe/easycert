@@ -9,9 +9,11 @@ package main
 import (
 	"fmt"
 	"log"
+
+	"github.com/kless/gotool/flagutil"
 )
 
-var cmdCat = &Command{
+var cmdCat = &flagutil.Command{
 	Run:       runCat,
 	UsageLine: "cat [-req | -cert | -key] FILE",
 	Short:     "show the content",
@@ -26,7 +28,7 @@ func init() {
 	flagsForFileType(cmdCat)
 }
 
-func runCat(cmd *Command, args []string) {
+func runCat(cmd *flagutil.Command, args []string) {
 	if len(args) != 1 {
 		log.Print("Missing required argument: FILE")
 		cmd.Usage()

@@ -19,9 +19,11 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/kless/gotool/flagutil"
 )
 
-var cmdLang = &Command{
+var cmdLang = &flagutil.Command{
 	Run:       runLang,
 	UsageLine: "lang [-ca-cert file] [-server-cert name] [-client] [-go]",
 	Short:     "generate files into a language to handle the certificate",
@@ -56,7 +58,7 @@ func init() {
 	cmdLang.Flag.BoolVar(IsGo, _IsGo.Name, _IsGo_Value, _IsGo.Usage)
 }
 
-func runLang(cmd *Command, args []string) {
+func runLang(cmd *flagutil.Command, args []string) {
 	if *CACert == "" {
 		log.Fatal("Missing required parameter in flag `-ca-cert`")
 	}

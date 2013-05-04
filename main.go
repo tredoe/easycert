@@ -4,7 +4,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-// Command easycert does all
 package main
 
 import (
@@ -16,6 +15,8 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+
+	"github.com/kless/gotool/flagutil"
 )
 
 const (
@@ -109,13 +110,13 @@ func init() {
 }
 
 func main() {
-	commands := NewCommands("EasyCert is a tool to generate and handle certificates.",
+	commands := flagutil.NewCommands(
+		"EasyCert is a tool to generate and handle certificates.",
 		cmdInit,
 		cmdCA,
 		cmdReq,
 		cmdSign,
 		cmdLang,
-
 		cmdLs,
 		cmdInfo,
 		cmdCat,

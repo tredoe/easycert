@@ -13,9 +13,11 @@ import (
 	"os"
 	"path/filepath"
 	"text/template"
+
+	"github.com/kless/gotool/flagutil"
 )
 
-var cmdInit = &Command{
+var cmdInit = &flagutil.Command{
 	Run:       runInit,
 	UsageLine: "init",
 	Short:     "initialize the directory",
@@ -25,7 +27,7 @@ the certificates are handled.
 `,
 }
 
-func runInit(cmd *Command, args []string) {
+func runInit(cmd *flagutil.Command, args []string) {
 	var err error
 
 	for _, v := range []string{Dir.Root, Dir.Cert, Dir.Key} {
