@@ -66,7 +66,7 @@ Generate files into a language to handle the certificate
 
 Usage:
 
-        easycert lang [-ca-cert file] [-server-cert name] [-client] [-go]
+        easycert lang [-ca file] [-server name] [-client] [-go]
 
 "lang" generate files into a language to handle the certificate.
 To look for the file, it uses the certificates directory when the "file" is just
