@@ -11,10 +11,10 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/kless/gotool/flagutil"
+	"github.com/kless/flagplus"
 )
 
-var cmdChk = &flagutil.Command{
+var cmdChk = &flagplus.Command{
 	Run:       runChk,
 	UsageLine: "chk [-req | -cert | -key] FILE",
 	Short:     "checking",
@@ -29,7 +29,7 @@ func init() {
 	flagsForFileType(cmdChk)
 }
 
-func runChk(cmd *flagutil.Command, args []string) {
+func runChk(cmd *flagplus.Command, args []string) {
 	if len(args) != 1 {
 		log.Print("Missing required argument: FILE")
 		cmd.Usage()

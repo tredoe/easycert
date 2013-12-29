@@ -11,7 +11,7 @@ import (
 	"flag"
 	"strconv"
 
-	"github.com/kless/gotool/flagutil"
+	"github.com/kless/flagplus"
 )
 
 var (
@@ -60,7 +60,7 @@ func init() {
 // * * *
 
 // flagsForNewCert adds the common flags to the "ca" and "req" commands.
-func flagsForNewCert(cmd *flagutil.Command) {
+func flagsForNewCert(cmd *flagplus.Command) {
 	_RSASize := flag.Lookup("rsa-size")
 	cmd.Flag.Var(&RSASize, _RSASize.Name, _RSASize.Usage)
 
@@ -70,7 +70,7 @@ func flagsForNewCert(cmd *flagutil.Command) {
 }
 
 // flagsForFileType adds the common flags to the "cat", "chk", and "ls" commands.
-func flagsForFileType(cmd *flagutil.Command) {
+func flagsForFileType(cmd *flagplus.Command) {
 	_IsRequest := flag.Lookup("req")
 	_IsRequest_Value, _ := strconv.ParseBool(_IsRequest.Value.String())
 	cmd.Flag.BoolVar(IsRequest, _IsRequest.Name, _IsRequest_Value, _IsRequest.Usage)

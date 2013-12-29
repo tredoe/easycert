@@ -17,10 +17,10 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/kless/gotool/flagutil"
+	"github.com/kless/flagplus"
 )
 
-var cmdReq = &flagutil.Command{
+var cmdReq = &flagplus.Command{
 	Run:       runReq,
 	UsageLine: "req [-sign] [-rsa-size bits] [-years number] [-host name1,...] NAME",
 	Short:     "create X509 certificate request",
@@ -81,7 +81,7 @@ func init() {
 	cmdReq.Flag.BoolVar(IsSign, _IsSign.Name, _IsSign_Value, _IsSign.Usage)
 }
 
-func runReq(cmd *flagutil.Command, args []string) {
+func runReq(cmd *flagplus.Command, args []string) {
 	if len(args) != 1 {
 		log.Fatalf("Missing required argument: NAME\n\n  %s", cmd.UsageLine)
 	}

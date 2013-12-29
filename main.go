@@ -16,7 +16,7 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"github.com/kless/gotool/flagutil"
+	"github.com/kless/flagplus"
 )
 
 const (
@@ -110,7 +110,7 @@ func init() {
 }
 
 func main() {
-	commands := flagutil.NewCommands(
+	app := flagplus.NewApp(
 		"EasyCert is a tool to generate and handle certificates.",
 		cmdInit,
 		cmdCA,
@@ -123,19 +123,9 @@ func main() {
 		cmdChk,
 	)
 
-	flag.Usage = commands.Usage
+	flag.Usage = app.Usage
 	flag.Parse()
-
-	args := flag.Args()
-	if len(args) < 1 {
-		fmt.Fprintln(os.Stderr, commands.Description)
-		os.Exit(2)
-	}
-
-	if err := commands.Parse(args); err != nil {
-		fmt.Fprintf(os.Stderr, "%s", err)
-		os.Exit(2)
-	}
+	app.Parse()
 }
 
 // getAbsPaths returns the absolute paths of files got in the arguments.

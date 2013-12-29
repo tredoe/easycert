@@ -14,10 +14,10 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/kless/gotool/flagutil"
+	"github.com/kless/flagplus"
 )
 
-var cmdInit = &flagutil.Command{
+var cmdInit = &flagplus.Command{
 	Run:       runInit,
 	UsageLine: "init",
 	Short:     "initialize the directory",
@@ -27,7 +27,7 @@ the certificates are handled.
 `,
 }
 
-func runInit(cmd *flagutil.Command, args []string) {
+func runInit(cmd *flagplus.Command, args []string) {
 	var err error
 
 	for _, v := range []string{Dir.Root, Dir.Cert, Dir.Key} {

@@ -11,10 +11,10 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/kless/gotool/flagutil"
+	"github.com/kless/flagplus"
 )
 
-var cmdLs = &flagutil.Command{
+var cmdLs = &flagplus.Command{
 	Run:       runLs,
 	UsageLine: "ls [-req] [-cert] [-key]",
 	Short:     "list",
@@ -28,7 +28,7 @@ func init() {
 	flagsForFileType(cmdLs)
 }
 
-func runLs(cmd *flagutil.Command, args []string) {
+func runLs(cmd *flagplus.Command, args []string) {
 	if !*IsCert && !*IsRequest && !*IsKey {
 		*IsCert = true
 		*IsRequest = true

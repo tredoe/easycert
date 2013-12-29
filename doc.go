@@ -21,6 +21,7 @@ The commands are:
     chk         checking
 
 Use "easycert help [command]" for more information about a command.
+Use "easycert help documentation" generates 'doc.go'.
 
 
 Initialize the directory
