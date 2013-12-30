@@ -15,17 +15,17 @@ import (
 )
 
 var cmdLs = &flagplus.Command{
-	Run:       runLs,
 	UsageLine: "ls [-req] [-cert] [-key]",
 	Short:     "list",
 	Long: `
 "ls" lists files in the certificates directory.
 Whether it is not used some flag, it lists all files related to certificates.
 `,
+	Run: runLs,
 }
 
 func init() {
-	flagsForFileType(cmdLs)
+	cmdLs.AddFlags("req", "cert", "key")
 }
 
 func runLs(cmd *flagplus.Command, args []string) {

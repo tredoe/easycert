@@ -24,7 +24,6 @@ import (
 )
 
 var cmdLang = &flagplus.Command{
-	Run:       runLang,
 	UsageLine: "lang [-ca file] [-server name] [-client] [-go]",
 	Short:     "generate files into a language to handle the certificate",
 	Long: `
@@ -32,6 +31,7 @@ var cmdLang = &flagplus.Command{
 To look for the file, it uses the certificates directory when the "file" is just
 a name or the path when the "file" is an absolute or relatative path.
 `,
+	Run: runLang,
 }
 
 var (
@@ -43,19 +43,7 @@ var (
 )
 
 func init() {
-	_CACert := flag.Lookup("ca")
-	cmdLang.Flag.StringVar(CACert, _CACert.Name, _CACert.Value.String(), _CACert.Usage)
-
-	_ServerCert := flag.Lookup("server")
-	cmdLang.Flag.StringVar(ServerCert, _ServerCert.Name, _ServerCert.Value.String(), _ServerCert.Usage)
-
-	_IsClient := flag.Lookup("client")
-	_IsClient_Value, _ := strconv.ParseBool(_IsClient.Value.String())
-	cmdLang.Flag.BoolVar(IsClient, _IsClient.Name, _IsClient_Value, _IsClient.Usage)
-
-	_IsGo := flag.Lookup("go")
-	_IsGo_Value, _ := strconv.ParseBool(_IsGo.Value.String())
-	cmdLang.Flag.BoolVar(IsGo, _IsGo.Name, _IsGo_Value, _IsGo.Usage)
+	cmdLang.AddFlags("ca", "server", "client", "go")
 }
 
 func runLang(cmd *flagplus.Command, args []string) {

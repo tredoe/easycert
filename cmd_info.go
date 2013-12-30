@@ -10,13 +10,11 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/kless/flagplus"
 )
 
 var cmdInfo = &flagplus.Command{
-	Run:       runInfo,
 	UsageLine: "info [-end-date] [-hash] [-issuer] [-name] FILE",
 	Short:     "information",
 	Long: `
@@ -26,6 +24,7 @@ a name or the path when the "file" is an absolute or relatative path.
 
 Whether a flag is not set, then it prints full information.
 `,
+	Run: runInfo,
 }
 
 var (
@@ -36,21 +35,7 @@ var (
 )
 
 func init() {
-	_IsEndDate := flag.Lookup("end-date")
-	_IsEndDate_Value, _ := strconv.ParseBool(_IsEndDate.Value.String())
-	cmdInfo.Flag.BoolVar(IsEndDate, _IsEndDate.Name, _IsEndDate_Value, _IsEndDate.Usage)
-
-	_IsHash := flag.Lookup("hash")
-	_IsHash_Value, _ := strconv.ParseBool(_IsHash.Value.String())
-	cmdInfo.Flag.BoolVar(IsHash, _IsHash.Name, _IsHash_Value, _IsHash.Usage)
-
-	_IsIssuer := flag.Lookup("issuer")
-	_IsIssuer_Value, _ := strconv.ParseBool(_IsIssuer.Value.String())
-	cmdInfo.Flag.BoolVar(IsIssuer, _IsIssuer.Name, _IsIssuer_Value, _IsIssuer.Usage)
-
-	_IsName := flag.Lookup("name")
-	_IsName_Value, _ := strconv.ParseBool(_IsName.Value.String())
-	cmdInfo.Flag.BoolVar(IsName, _IsName.Name, _IsName_Value, _IsName.Usage)
+	cmdInfo.AddFlags("end-date", "hash", "issuer", "name")
 }
 
 func runInfo(cmd *flagplus.Command, args []string) {

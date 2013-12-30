@@ -16,17 +16,17 @@ import (
 )
 
 var cmdCA = &flagplus.Command{
-	Run:       runCA,
 	UsageLine: "ca [-rsa-size bits] [-years number]",
 	Short:     "create certification authority",
 	Long: `
 "ca" creates a certification authority (CA) and makes the directories and files
 to handle the certificates signed by this CA.
 `,
+	Run: runCA,
 }
 
 func init() {
-	flagsForNewCert(cmdCA)
+	cmdCA.AddFlags("rsa-size", "years")
 }
 
 func runCA(cmd *flagplus.Command, args []string) {

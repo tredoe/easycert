@@ -13,7 +13,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"strconv"
 	"strings"
 	"text/template"
 
@@ -21,12 +20,12 @@ import (
 )
 
 var cmdReq = &flagplus.Command{
-	Run:       runReq,
 	UsageLine: "req [-sign] [-rsa-size bits] [-years number] [-host name1,...] NAME",
 	Short:     "create X509 certificate request",
 	Long: `
 "req" creates a X509 certificate signing request (CSR) to be signed by a CA.
 `,
+	Run: runReq,
 }
 
 var errHost = errors.New("must be an IP or DNS")
@@ -69,16 +68,8 @@ var (
 )
 
 func init() {
-	flagsForNewCert(cmdReq)
-
 	flag.Var(&Host, "host", "comma-separated hostnames and IPs to generate a server certificate")
-
-	_Host := flag.Lookup("host")
-	cmdReq.Flag.Var(&Host, _Host.Name, _Host.Usage)
-
-	_IsSign := flag.Lookup("sign")
-	_IsSign_Value, _ := strconv.ParseBool(_IsSign.Value.String())
-	cmdReq.Flag.BoolVar(IsSign, _IsSign.Name, _IsSign_Value, _IsSign.Usage)
+	cmdReq.AddFlags("sign", "rsa-size", "years", "host")
 }
 
 func runReq(cmd *flagplus.Command, args []string) {

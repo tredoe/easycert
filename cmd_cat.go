@@ -14,7 +14,6 @@ import (
 )
 
 var cmdCat = &flagplus.Command{
-	Run:       runCat,
 	UsageLine: "cat [-req | -cert | -key] FILE",
 	Short:     "show the content",
 	Long: `
@@ -22,10 +21,11 @@ var cmdCat = &flagplus.Command{
 To look for the file, it uses the certificates directory when the "file" is just
 a name or the path when the "file" is an absolute or relatative path.
 `,
+	Run: runCat,
 }
 
 func init() {
-	flagsForFileType(cmdCat)
+	cmdCat.AddFlags("req", "cert", "key")
 }
 
 func runCat(cmd *flagplus.Command, args []string) {

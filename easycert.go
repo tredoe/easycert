@@ -8,7 +8,6 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -122,9 +121,6 @@ func main() {
 		cmdCat,
 		cmdChk,
 	)
-
-	flag.Usage = app.Usage
-	flag.Parse()
 	app.Parse()
 }
 

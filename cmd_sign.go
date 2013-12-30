@@ -7,7 +7,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -17,19 +16,17 @@ import (
 )
 
 var cmdSign = &flagplus.Command{
-	Run:       runSign,
 	UsageLine: "sign [-years number] NAME",
 	Short:     "sign certificate request",
 	Long: `
 "sign" signs a certificate signing request (CSR) using the CA in the
 certificates directory and generates a certificate.
 `,
+	Run: runSign,
 }
 
 func init() {
-	_Years := flag.Lookup("years")
-	_Years_Value, _ := strconv.Atoi(_Years.Value.String())
-	cmdSign.Flag.IntVar(Years, _Years.Name, _Years_Value, _Years.Usage)
+	cmdSign.AddFlags("years")
 }
 
 func runSign(cmd *flagplus.Command, args []string) {

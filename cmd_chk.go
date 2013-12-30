@@ -15,7 +15,6 @@ import (
 )
 
 var cmdChk = &flagplus.Command{
-	Run:       runChk,
 	UsageLine: "chk [-req | -cert | -key] FILE",
 	Short:     "checking",
 	Long: `
@@ -23,10 +22,11 @@ var cmdChk = &flagplus.Command{
 To look for the file, it uses the certificates directory when the "file" is just
 a name or the path when the "file" is an absolute or relatative path.
 `,
+	Run: runChk,
 }
 
 func init() {
-	flagsForFileType(cmdChk)
+	cmdChk.AddFlags("req", "cert", "key")
 }
 
 func runChk(cmd *flagplus.Command, args []string) {

@@ -18,13 +18,13 @@ import (
 )
 
 var cmdInit = &flagplus.Command{
-	Run:       runInit,
 	UsageLine: "init",
 	Short:     "initialize the directory",
 	Long: `
 "init" makes the directory structure in the HOME directory where
 the certificates are handled.
 `,
+	Run: runInit,
 }
 
 func runInit(cmd *flagplus.Command, args []string) {
