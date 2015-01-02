@@ -11,10 +11,10 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/kless/flagplus"
+	"github.com/kless/goutil/flagplus"
 )
 
-var cmdLs = &flagplus.Command{
+var cmdLs = &flagplus.Subcommand{
 	UsageLine: "ls [-req] [-cert] [-key]",
 	Short:     "list",
 	Long: `
@@ -28,7 +28,7 @@ func init() {
 	cmdLs.AddFlags("req", "cert", "key")
 }
 
-func runLs(cmd *flagplus.Command, args []string) {
+func runLs(cmd *flagplus.Subcommand, args []string) {
 	if !*IsCert && !*IsRequest && !*IsKey {
 		*IsCert = true
 		*IsRequest = true

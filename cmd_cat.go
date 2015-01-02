@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/kless/flagplus"
+	"github.com/kless/goutil/flagplus"
 )
 
-var cmdCat = &flagplus.Command{
+var cmdCat = &flagplus.Subcommand{
 	UsageLine: "cat [-req | -cert | -key] FILE",
 	Short:     "show the content",
 	Long: `
@@ -28,7 +28,7 @@ func init() {
 	cmdCat.AddFlags("req", "cert", "key")
 }
 
-func runCat(cmd *flagplus.Command, args []string) {
+func runCat(cmd *flagplus.Subcommand, args []string) {
 	if len(args) != 1 {
 		log.Print("Missing required argument: FILE")
 		cmd.Usage()

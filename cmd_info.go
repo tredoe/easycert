@@ -11,10 +11,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/kless/flagplus"
+	"github.com/kless/goutil/flagplus"
 )
 
-var cmdInfo = &flagplus.Command{
+var cmdInfo = &flagplus.Subcommand{
 	UsageLine: "info [-end-date] [-hash] [-issuer] [-name] FILE",
 	Short:     "information",
 	Long: `
@@ -38,7 +38,7 @@ func init() {
 	cmdInfo.AddFlags("end-date", "hash", "issuer", "name")
 }
 
-func runInfo(cmd *flagplus.Command, args []string) {
+func runInfo(cmd *flagplus.Subcommand, args []string) {
 	if len(args) != 1 {
 		log.Print("Missing required argument: FILE")
 		cmd.Usage()

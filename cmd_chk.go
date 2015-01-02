@@ -11,10 +11,10 @@ import (
 	"log"
 	"path/filepath"
 
-	"github.com/kless/flagplus"
+	"github.com/kless/goutil/flagplus"
 )
 
-var cmdChk = &flagplus.Command{
+var cmdChk = &flagplus.Subcommand{
 	UsageLine: "chk [-req | -cert | -key] FILE",
 	Short:     "checking",
 	Long: `
@@ -29,7 +29,7 @@ func init() {
 	cmdChk.AddFlags("req", "cert", "key")
 }
 
-func runChk(cmd *flagplus.Command, args []string) {
+func runChk(cmd *flagplus.Subcommand, args []string) {
 	if len(args) != 1 {
 		log.Print("Missing required argument: FILE")
 		cmd.Usage()

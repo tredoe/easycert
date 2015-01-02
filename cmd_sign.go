@@ -12,10 +12,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/kless/flagplus"
+	"github.com/kless/goutil/flagplus"
 )
 
-var cmdSign = &flagplus.Command{
+var cmdSign = &flagplus.Subcommand{
 	UsageLine: "sign [-years number] NAME",
 	Short:     "sign certificate request",
 	Long: `
@@ -29,7 +29,7 @@ func init() {
 	cmdSign.AddFlags("years")
 }
 
-func runSign(cmd *flagplus.Command, args []string) {
+func runSign(cmd *flagplus.Subcommand, args []string) {
 	if len(args) != 1 {
 		log.Print("Missing required argument: NAME")
 		cmd.Usage()

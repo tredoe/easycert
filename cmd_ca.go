@@ -12,10 +12,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/kless/flagplus"
+	"github.com/kless/goutil/flagplus"
 )
 
-var cmdCA = &flagplus.Command{
+var cmdCA = &flagplus.Subcommand{
 	UsageLine: "ca [-rsa-size bits] [-years number]",
 	Short:     "create certification authority",
 	Long: `
@@ -29,7 +29,7 @@ func init() {
 	cmdCA.AddFlags("rsa-size", "years")
 }
 
-func runCA(cmd *flagplus.Command, args []string) {
+func runCA(cmd *flagplus.Subcommand, args []string) {
 	setCertPath(NAME_CA)
 
 	_, err := os.Stat(File.Cert)

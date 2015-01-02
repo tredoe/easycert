@@ -15,7 +15,7 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"github.com/kless/flagplus"
+	"github.com/kless/goutil/flagplus"
 )
 
 const (
@@ -109,7 +109,7 @@ func init() {
 }
 
 func main() {
-	app := flagplus.NewApp(
+	app := flagplus.NewCommand(
 		"EasyCert is a tool to generate and handle certificates.",
 		cmdInit,
 		cmdCA,
