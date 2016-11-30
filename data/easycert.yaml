@@ -1,0 +1,15 @@
+
+#Cert:
+	
+
+CertAuth:
+	KeyUsage:
+		- KeyUsageCRLSign
+		- KeyUsageCertSign
+	ExtKeyUsage:
+		- ExtKeyUsageServerAuth
+		- ExtKeyUsageClientAuth
+
+	BasicConstraintsValid: true
+	IsCA: true
+
