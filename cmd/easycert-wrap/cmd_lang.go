@@ -9,7 +9,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -85,7 +84,7 @@ func Cert2Lang() {
 		log.Fatal(err)
 	}
 
-	caCertBlock, err := ioutil.ReadFile(*CACert)
+	caCertBlock, err := os.ReadFile(*CACert)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -115,11 +114,11 @@ func Cert2Lang() {
 		certFile := filepath.Join(Dir.Cert, *ServerCert+EXT_CERT)
 		keyFile := filepath.Join(Dir.Key, *ServerCert+EXT_KEY)
 
-		certBlock, err := ioutil.ReadFile(certFile)
+		certBlock, err := os.ReadFile(certFile)
 		if err != nil {
 			log.Fatal(err)
 		}
-		keyBlock, err := ioutil.ReadFile(keyFile)
+		keyBlock, err := os.ReadFile(keyFile)
 		if err != nil {
 			log.Fatal(err)
 		}

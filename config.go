@@ -6,11 +6,7 @@
 
 package easycert
 
-import (
-	"io/ioutil"
-
-	"gopkg.in/yaml.v1"
-)
+import "os"
 
 // Title for the common elements of a distinguished name (DN).
 var (
@@ -44,11 +40,10 @@ func (cfg config) check() error {
 	return nil
 }
 
-
 func t() error {
 	var cfg config
 
-	configData, err := ioutil.ReadFile("data/easycert.yaml")
+	configData, err := os.ReadFile("data/easycert.yaml")
 	if err != nil {
 		return err
 	}
@@ -62,5 +57,3 @@ func t() error {
 
 	return nil
 }
-
-
